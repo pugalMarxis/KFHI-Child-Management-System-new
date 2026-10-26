@@ -264,6 +264,32 @@ Route::get('/child-officer/registration-reports/export/excel', [ChildRegistratio
 Route::get('/child-officer/registration-reports/export/pdf', [ChildRegistrationReportController::class, 'exportPdf'])
     ->name('child_officer.registration_reports.export.pdf');
 
+
+Route::get('/child-officer/reports/child-follow-ups',
+    [\App\Http\Controllers\ChildOfficer\ChildFollowUpReportController::class, 'index']
+)->name('child_officer.follow_up_reports.children.index');
+
+Route::get('/child-officer/reports/child-follow-ups/export/excel',
+    [\App\Http\Controllers\ChildOfficer\ChildFollowUpReportController::class, 'exportExcel']
+)->name('child_officer.follow_up_reports.children.export.excel');
+
+Route::get('/child-officer/reports/child-follow-ups/export/pdf',
+    [\App\Http\Controllers\ChildOfficer\ChildFollowUpReportController::class, 'exportPdf']
+)->name('child_officer.follow_up_reports.children.export.pdf');
+
+Route::get('/child-officer/reports/event-follow-ups',
+    [\App\Http\Controllers\ChildOfficer\EventFollowUpReportController::class, 'index']
+)->name('child_officer.follow_up_reports.events.index');
+
+Route::get('/child-officer/reports/event-follow-ups/export/excel',
+    [\App\Http\Controllers\ChildOfficer\EventFollowUpReportController::class, 'exportExcel']
+)->name('child_officer.follow_up_reports.events.export.excel');
+
+Route::get('/child-officer/reports/event-follow-ups/export/pdf',
+    [\App\Http\Controllers\ChildOfficer\EventFollowUpReportController::class, 'exportPdf']
+)->name('child_officer.follow_up_reports.events.export.pdf');
+
+
 Route::get(
     '/child-officer/reports/export/excel',
     [ChildOfficerChildReportController::class, 'exportExcel']

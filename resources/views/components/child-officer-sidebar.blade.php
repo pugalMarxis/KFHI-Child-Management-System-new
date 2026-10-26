@@ -211,6 +211,16 @@
     Child Registration Report
 </a>
 
+<a class="co-nav-link {{ request()->routeIs('child_officer.follow_up_reports.children.*') ? 'active' : '' }}"
+   href="{{ route('child_officer.follow_up_reports.children.index') }}">
+    Child Follow-up Report
+</a>
+
+<a class="co-nav-link {{ request()->routeIs('child_officer.follow_up_reports.events.*') ? 'active' : '' }}"
+   href="{{ route('child_officer.follow_up_reports.events.index') }}">
+    Event Follow-up Report
+</a>
+
 
     <div class="co-nav-title">Account</div>
     <a class="co-nav-link" href="#">Profile</a>

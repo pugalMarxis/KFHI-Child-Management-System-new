@@ -1,0 +1,139 @@
+
+<div class="container-fluid py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">Event Follow-up Report</h2>
+            <p class="text-muted mb-0">Monitor event-related tasks, deadlines, and outcomes.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('child_officer.follow_up_reports.events.export.excel', request()->query()) }}"
+               class="btn btn-success">Export Excel</a>
+            <a href="{{ route('child_officer.follow_up_reports.events.export.pdf', request()->query()) }}"
+               class="btn btn-outline-success">Export PDF</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        @foreach ([
+            ['Total Follow-ups', $total],
+            ['Open / Pending', $pending],
+            ['Completed', $completed],
+            ['Overdue', $overdue],
+        ] as [$label, $value])
+            <div class="col-6 col-xl-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">{{ $label }}</div>
+                        <div class="fs-3 fw-bold">{{ $value }}</div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    <form method="GET" class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="search" name="search" class="form-control"
+                           value="{{ request('search') }}"
+                           placeholder="Event, follow-up title, description...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status }}" @selected(request('status') === $status)>
+                                {{ ucfirst(str_replace('_', ' ', $status)) }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Priority</label>
+                    <select name="priority" class="form-select">
+                        <option value="">All priorities</option>
+                        @foreach ($priorities as $priority)
+                            <option value="{{ $priority }}" @selected(request('priority') === $priority)>
+                                {{ ucfirst($priority) }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Due date from</label>
+                    <input type="date" name="date_from" class="form-control"
+                           value="{{ request('date_from') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Due date to</label>
+                    <input type="date" name="date_to" class="form-control"
+                           value="{{ request('date_to') }}">
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button class="btn btn-success" type="submit">Apply filters</button>
+                    <a class="btn btn-outline-secondary"
+                       href="{{ route('child_officer.follow_up_reports.events.index') }}">Reset</a>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Event</th>
+                        <th>Follow-up</th>
+                        <th>Assigned to</th>
+                        <th>Due date</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Outcome</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($followUps as $followUp)
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">
+                                    {{ $followUp->event?->title ?? 'Event unavailable' }}
+                                </div>
+                                <small class="text-muted">
+                                    {{ $followUp->event?->event_code ?? '' }}
+                                </small>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ $followUp->title }}</div>
+                                <small class="text-muted">
+                                    {{ \Illuminate\Support\Str::limit($followUp->description ?? '', 70) }}
+                                </small>
+                            </td>
+                            <td>{{ $followUp->assignee?->name ?? 'Unassigned' }}</td>
+                            <td>{{ $followUp->due_date?->format('Y-m-d') ?? '—' }}</td>
+                            <td>{{ ucfirst($followUp->priority ?? '—') }}</td>
+                            <td>
+                                <span class="badge text-bg-light">
+                                    {{ ucfirst(str_replace('_', ' ', $followUp->status)) }}
+                                </span>
+                            </td>
+                            <td>{{ \Illuminate\Support\Str::limit($followUp->outcome ?? '—', 45) }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                No event follow-up records match your filters.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="card-body">
+            {{ $followUps->links() }}
+        </div>
+    </div>
+</div>
