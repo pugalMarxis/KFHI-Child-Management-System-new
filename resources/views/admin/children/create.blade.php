@@ -168,7 +168,9 @@
     </style>
 </head>
 
-<body>
+<body class="admin-layout-body">
+
+@include('components.admin-sidebar')
 
 <div class="page">
 

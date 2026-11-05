@@ -141,6 +141,14 @@ class EventController extends Controller
                 'required',
                 'in:planned,ongoing,completed,cancelled',
             ],
+            'enable_attendance' => [
+                'nullable',
+                'boolean',
+            ],
+            'enable_questionnaires' => [
+                'nullable',
+                'boolean',
+            ],
         ]);
 
         $event->update([
@@ -152,6 +160,8 @@ class EventController extends Controller
             'end_time' => $validated['end_time'] ?? null,
             'location' => $validated['location'] ?? null,
             'status' => $validated['status'],
+            'enable_attendance' => $request->boolean('enable_attendance'),
+            'enable_questionnaires' => $request->boolean('enable_questionnaires'),
         ]);
 
         return redirect()

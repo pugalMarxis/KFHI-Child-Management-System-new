@@ -11,6 +11,9 @@
         }
 
         body {
+            display: flex;
+            flex-wrap: wrap;
+            min-height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
             background: #f3f8f4;
@@ -18,6 +21,8 @@
         }
 
         .container {
+            flex: 1;
+            min-width: 0;
             max-width: 1400px;
             margin: 0 auto;
             padding: 30px;
@@ -185,7 +190,7 @@
 
 <body>
 
-@include('components.navigation-drawer')
+@include('components.admin-sidebar')
 
 <div class="container">
 

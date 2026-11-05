@@ -115,6 +115,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Check whether the user is a child officer.
+     */
+    public function isChildOfficer(): bool
+    {
+        return $this->role === 'child_officer';
+    }
+
+    /**
+     * Check whether the user is a field officer.
+     */
+    public function isFieldOfficer(): bool
+    {
+        return $this->role === 'field_officer';
+    }
+
+    /**
+     * Check whether the user is an enumerator.
+     */
+    public function isEnumerator(): bool
+    {
+        return $this->role === 'enumerator';
+    }
+
+    /**
      * Check whether the user is a field member.
      */
     public function isFieldMember(): bool

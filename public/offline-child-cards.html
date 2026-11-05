@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#287344">
+    <title>Saved Child Cards | KFHI-CMS</title>
+    <style>
+        *{box-sizing:border-box}body{margin:0;padding:18px;background:#f3f8f4;color:#24352a;font-family:Arial,sans-serif}main{max-width:980px;margin:auto}.panel{background:#fff;border-radius:14px;padding:20px;margin:12px 0;box-shadow:0 4px 16px #23482b10}h1{margin:0 0 8px;color:#245c3a}p{line-height:1.5;color:#607267}input,button{padding:11px;border:1px solid #cbd8ce;border-radius:8px}input{width:min(100%,420px)}button{background:#287344;color:white;font-weight:700;cursor:pointer}.muted{color:#66756c}.saved-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.child-item{padding:12px;border:1px solid #dce8df;border-radius:9px;background:#fff;text-align:left;color:#24352a}.card{display:none;position:relative;width:85.6mm;height:54mm;margin:20px auto;padding:4mm;border:0.6mm solid #cfe0d4;border-radius:3mm;background:#fff;grid-template-rows:14mm 1fr 5mm;overflow:hidden;color:#24352a}.card-header{display:flex;align-items:center;justify-content:space-between;border-bottom:0.5mm solid #e0ece3;padding-bottom:2mm}.brand{display:flex;align-items:center;gap:3mm}.brand img{width:12mm;height:10mm;object-fit:contain}.brand strong{display:block;color:#287344;font-size:15pt}.brand span{font-size:8pt;color:#718278}.card-title{text-align:right;color:#287344;font-size:10pt;font-weight:bold}.card-content{display:grid;grid-template-columns:18mm 1fr 21mm;gap:3mm;align-items:center;padding-top:2mm}.card-photo{width:18mm;height:22mm;border:0.6mm solid #cfe0d4;border-radius:2mm;object-fit:cover;background:#eef4ef}.card-info small{display:block;color:#829187;font-size:7pt;margin-bottom:1mm}.card-info strong{display:block;color:#246b43;font-size:13pt;letter-spacing:.5pt;margin-bottom:2mm}.card-info .child-name{font-size:12pt;line-height:1.1;color:#273f32;letter-spacing:0;margin-bottom:2mm;overflow-wrap:anywhere}.card-info .location{font-size:8pt;color:#314b3b;margin-bottom:1mm}.card-qr{text-align:center}.qr{width:19mm;height:19mm;margin:auto}.qr img,.qr canvas{width:100%;height:100%}.qr-caption{font-size:6pt;color:#718278;margin-top:1mm}.card-footer{border-top:.5mm solid #e0ece3;display:flex;justify-content:space-between;align-items:end;font-size:7pt;color:#718278;padding-top:1mm}.card-footer strong{color:#287344}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.danger{background:#a52828}@page{size:85.6mm 54mm;margin:0}@media print{body{background:#fff;padding:0;margin:0}main{width:85.6mm;margin:0}.no-print{display:none!important}.card{display:grid!important;margin:0;border-radius:3mm;box-shadow:none;page-break-inside:avoid;break-after:page}}
+    </style>
+</head>
+<body>
+<main>
+    <section class="panel no-print">
+        <h1>Child records saved on this device</h1>
+        <p>This page works offline after it has been opened once while online. It shows records saved on this device. The QR code contains only the child code; the CMS checks permission before showing details.</p>
+        <label for="filter">Find a saved child by name or code</label><br><br>
+        <input id="filter" type="search" placeholder="Type a name or child code">
+        <div class="actions"><button id="refresh">Show saved children</button><button id="deleteSavedChildren" class="danger" type="button">Remove all saved children from this device</button><a href="./admin/child-sync">Go to sync page (online)</a></div>
+        <p id="status" class="muted" role="status">Opening local child records…</p>
+        <div id="list" class="saved-list"></div>
+    </section>
+    <section id="card" class="card" aria-label="Printable child identification card">
+        <div class="card-header">
+            <div class="brand"><img src="./images/logo.png" alt="KFHI logo"><div><strong>KFHI</strong><span>Friends of Hope International</span></div></div>
+            <div class="card-title">CHILD ID CARD<br><span style="font-size:7pt;color:#7a8a80;font-weight:normal">KFHI-CMS</span></div>
+        </div>
+        <div class="card-content">
+            <img id="cardPhoto" class="card-photo" alt="Child photo">
+            <div class="card-info">
+                <small>CHILD ID</small><strong id="cardCode"></strong>
+                <strong class="child-name" id="cardName"></strong>
+                <div class="location">GN Division: <b id="cardDivision"></b></div>
+                <div class="location">District: <b id="cardDistrict"></b></div>
+            </div>
+            <div class="card-qr"><div id="qr" class="qr"></div><div class="qr-caption">Scan for secure identification</div></div>
+        </div>
+        <div class="card-footer"><span>Secure Child Identification</span><strong>KFHI-CMS</strong></div>
+    </section>
+    <div class="actions no-print" id="cardActions" hidden><button onclick="window.print()">Print standard ID card</button><button id="downloadPng">Download PNG</button><button class="danger" id="closeCard">Close card</button></div>
+</main>
+<script src="./js/qrcode.min.js"></script>
+<script src="./js/offline-child-cards.js"></script>
+</body>
+</html>

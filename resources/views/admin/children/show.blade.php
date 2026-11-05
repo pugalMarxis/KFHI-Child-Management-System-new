@@ -218,7 +218,9 @@
     </style>
 </head>
 
-<body>
+<body class="admin-layout-body">
+
+@include('components.admin-sidebar')
 
 <div class="page">
 
@@ -318,6 +320,11 @@
 
     </div>
 
+    @if(session('success'))
+        <div style="margin:0 0 20px; padding:14px 18px; border:1px solid #b9dfc1; border-radius:8px; background:#e8f5e9; color:#1e5c2a; font-weight:600;">
+            {{ session('success') }}
+        </div>
+    @endif
 
     <div class="profile-card">
 

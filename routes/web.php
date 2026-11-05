@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\GuardianController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\AttendanceSyncController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ChildController;
 use App\Http\Controllers\QRCodeController;
@@ -11,7 +12,8 @@ use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\EventAttendanceController;
 use App\Http\Controllers\QuestionnaireResponseController;
 
-
+use App\Http\Controllers\ChildOfficer\ChildFollowUpReportController;
+use App\Http\Controllers\ChildOfficer\EventFollowUpReportController;
 use App\Http\Controllers\ChildOfficer\DashboardController;
 use App\Http\Controllers\ChildOfficer\ChildRegistrationReportController;
 use App\Http\Controllers\ChildOfficer\ChildReportController as ChildOfficerChildReportController;
@@ -21,6 +23,14 @@ use App\Http\Controllers\ChildOfficer\GuardianController as ChildOfficerGuardian
 use App\Http\Controllers\ChildOfficer\QRCodeController as ChildOfficerQRCodeController;
 use App\Http\Controllers\ChildOfficer\ChildInformationController as ChildOfficerChildInformationController;
 use App\Http\Controllers\ChildOfficer\EventFollowUpController as ChildOfficerEventFollowUpController;
+use App\Http\Controllers\PublicFormController;
+use App\Http\Controllers\Admin\EnumeratorManagementController;
+use App\Http\Controllers\Admin\ResponseManagementController;
+use App\Http\Controllers\Admin\ResponseExportController;
+use App\Http\Controllers\Admin\QuestionnaireExportController;
+use App\Http\Controllers\Admin\OfflineChildSyncController;
+use App\Http\Controllers\Enumerator\EnumeratorDashboardController;
+use App\Http\Controllers\Enumerator\EnumeratorSurveyController;
 /*
 |--------------------------------------------------------------------------
 | Public Routes
@@ -55,6 +65,18 @@ Route::post('/logout', [AuthController::class, 'logout'])
 */
 
 Route::middleware('auth')->group(function () {
+
+    Route::get('/admin/child-sync', [OfflineChildSyncController::class, 'index'])
+        ->name('admin.child-sync.index');
+    Route::get('/admin/child-sync/search', [OfflineChildSyncController::class, 'search'])
+        ->name('admin.child-sync.search');
+    Route::get('/admin/child-sync/children/{child}/photo', [OfflineChildSyncController::class, 'photo'])
+        ->name('admin.child-sync.photo');
+    Route::post('/admin/child-sync/download', [OfflineChildSyncController::class, 'download'])
+        ->name('admin.child-sync.download');    
+    Route::post('/attendance/sync', [AttendanceSyncController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('attendance.sync');
 
     /*
     |--------------------------------------------------------------------------
@@ -193,6 +215,57 @@ Route::middleware('auth')->group(function () {
         '/admin/events/{event}/questionnaires/{questionnaire}/questions/{question}',
         [\App\Http\Controllers\Admin\QuestionController::class, 'destroy']
     )->name('events.questionnaires.questions.destroy');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Questionnaire Builder Extensions
+    |--------------------------------------------------------------------------
+    */
+    Route::post(
+        '/admin/events/{event}/questionnaires/{questionnaire}/publish',
+        [\App\Http\Controllers\Admin\QuestionnaireController::class, 'publish']
+    )->name('events.questionnaires.publish');
+
+    Route::post(
+        '/admin/events/{event}/questionnaires/{questionnaire}/settings',
+        [\App\Http\Controllers\Admin\QuestionnaireController::class, 'updateSettings']
+    )->name('events.questionnaires.settings.update');
+
+    Route::post(
+        '/admin/events/{event}/questionnaires/{questionnaire}/questions/reorder',
+        [\App\Http\Controllers\Admin\QuestionController::class, 'reorder']
+    )->name('events.questionnaires.questions.reorder');
+
+    Route::get(
+        '/admin/events/{event}/questionnaires/{questionnaire}/export/excel',
+        [QuestionnaireExportController::class, 'export']
+    )->name('events.questionnaires.export.excel');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Form Responses & Review Management
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/admin/responses/export', [ResponseExportController::class, 'export'])->name('admin.responses.export');
+    Route::get('/admin/responses', [ResponseManagementController::class, 'index'])->name('admin.responses.index');
+    Route::get('/admin/responses/{response}', [ResponseManagementController::class, 'show'])->name('admin.responses.show');
+    Route::post('/admin/responses/{response}/status', [ResponseManagementController::class, 'updateStatus'])->name('admin.responses.status');
+    Route::post('/admin/responses/{response}/merge', [ResponseManagementController::class, 'merge'])->name('admin.responses.merge');
+    Route::delete(
+    '/admin/responses/{response}',
+    [ResponseManagementController::class, 'destroy']
+    )->name('admin.responses.destroy');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Enumerator Management
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/admin/enumerators', [EnumeratorManagementController::class, 'index'])->name('admin.enumerators.index');
+    Route::post('/admin/enumerators', [EnumeratorManagementController::class, 'store'])->name('admin.enumerators.store');
+    Route::post('/admin/enumerators/common-password', [EnumeratorManagementController::class, 'updateCommonPassword'])->name('admin.enumerators.common_password');
+    Route::put('/admin/enumerators/{enumerator}', [EnumeratorManagementController::class, 'update'])->name('admin.enumerators.update');
+    Route::delete('/admin/enumerators/{enumerator}', [EnumeratorManagementController::class, 'destroy'])->name('admin.enumerators.destroy');
 });
 
 
@@ -229,6 +302,17 @@ Route::get(
     [QuestionnaireResponseController::class, 'success']
 )->name('questionnaires.responses.success');
 
+/*
+|--------------------------------------------------------------------------
+| Public Dynamic Forms (Kobo-like)
+|--------------------------------------------------------------------------
+*/
+Route::get('/forms/{token}', [PublicFormController::class, 'show'])->name('forms.show');
+Route::post('/forms/{token}', [PublicFormController::class, 'store'])->name('forms.store');
+Route::get('/forms/{token}/success', [PublicFormController::class, 'success'])->name('forms.success');
+Route::post('/forms/qr/lookup', [PublicFormController::class, 'qrLookup'])->name('forms.qr.lookup');
+Route::post('/forms/enumerator/verify', [PublicFormController::class, 'verifyEnumerator'])->name('forms.enumerator.verify');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -255,6 +339,39 @@ Route::get(
     [ChildOfficerChildReportController::class, 'index']
 )->name('child_officer.reports.index');
 
+// Child Follow-up Report
+Route::get(
+    '/child-officer/reports/child-follow-ups',
+    [ChildFollowUpReportController::class, 'index']
+)->name('child_officer.follow_up_reports.children.index');
+
+Route::get(
+    '/child-officer/reports/child-follow-ups/export/excel',
+    [ChildFollowUpReportController::class, 'exportExcel']
+)->name('child_officer.follow_up_reports.children.export.excel');
+
+Route::get(
+    '/child-officer/reports/child-follow-ups/export/pdf',
+    [ChildFollowUpReportController::class, 'exportPdf']
+)->name('child_officer.follow_up_reports.children.export.pdf');
+
+
+// Event Follow-up Report
+Route::get(
+    '/child-officer/reports/event-follow-ups',
+    [EventFollowUpReportController::class, 'index']
+)->name('child_officer.follow_up_reports.events.index');
+
+Route::get(
+    '/child-officer/reports/event-follow-ups/export/excel',
+    [EventFollowUpReportController::class, 'exportExcel']
+)->name('child_officer.follow_up_reports.events.export.excel');
+
+Route::get(
+    '/child-officer/reports/event-follow-ups/export/pdf',
+    [EventFollowUpReportController::class, 'exportPdf']
+)->name('child_officer.follow_up_reports.events.export.pdf');
+
 Route::get('/child-officer/registration-reports', [ChildRegistrationReportController::class, 'index'])
     ->name('child_officer.registration_reports.index');
 
@@ -263,32 +380,6 @@ Route::get('/child-officer/registration-reports/export/excel', [ChildRegistratio
 
 Route::get('/child-officer/registration-reports/export/pdf', [ChildRegistrationReportController::class, 'exportPdf'])
     ->name('child_officer.registration_reports.export.pdf');
-
-
-Route::get('/child-officer/reports/child-follow-ups',
-    [\App\Http\Controllers\ChildOfficer\ChildFollowUpReportController::class, 'index']
-)->name('child_officer.follow_up_reports.children.index');
-
-Route::get('/child-officer/reports/child-follow-ups/export/excel',
-    [\App\Http\Controllers\ChildOfficer\ChildFollowUpReportController::class, 'exportExcel']
-)->name('child_officer.follow_up_reports.children.export.excel');
-
-Route::get('/child-officer/reports/child-follow-ups/export/pdf',
-    [\App\Http\Controllers\ChildOfficer\ChildFollowUpReportController::class, 'exportPdf']
-)->name('child_officer.follow_up_reports.children.export.pdf');
-
-Route::get('/child-officer/reports/event-follow-ups',
-    [\App\Http\Controllers\ChildOfficer\EventFollowUpReportController::class, 'index']
-)->name('child_officer.follow_up_reports.events.index');
-
-Route::get('/child-officer/reports/event-follow-ups/export/excel',
-    [\App\Http\Controllers\ChildOfficer\EventFollowUpReportController::class, 'exportExcel']
-)->name('child_officer.follow_up_reports.events.export.excel');
-
-Route::get('/child-officer/reports/event-follow-ups/export/pdf',
-    [\App\Http\Controllers\ChildOfficer\EventFollowUpReportController::class, 'exportPdf']
-)->name('child_officer.follow_up_reports.events.export.pdf');
-
 
 Route::get(
     '/child-officer/reports/export/excel',
@@ -416,7 +507,47 @@ Route::get(
         [ChildOfficerChildInformationController::class, 'store']
     )->name('child_officer.child_information.store');
 
+    /*
+    |--------------------------------------------------------------------------
+    | Child Officer Responses & Enumerators Management
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/child-officer/responses', [ResponseManagementController::class, 'index'])->name('child_officer.responses.index');
+    Route::get('/child-officer/responses/{response}', [ResponseManagementController::class, 'show'])->name('child_officer.responses.show');
+    Route::post('/child-officer/responses/{response}/status', [ResponseManagementController::class, 'updateStatus'])->name('child_officer.responses.status');
+    Route::post('/child-officer/responses/{response}/merge', [ResponseManagementController::class, 'merge'])->name('child_officer.responses.merge');
+    Route::delete(
+        '/child-officer/responses/{response}',
+        [ResponseManagementController::class, 'destroy']
+    )->name('child_officer.responses.destroy');
 
-
-
+    Route::get('/child-officer/enumerators', [EnumeratorManagementController::class, 'index'])->name('child_officer.enumerators.index');
+    Route::post('/child-officer/enumerators', [EnumeratorManagementController::class, 'store'])->name('child_officer.enumerators.store');
+    Route::post('/child-officer/enumerators/common-password', [EnumeratorManagementController::class, 'updateCommonPassword'])->name('child_officer.enumerators.common_password');
+    Route::put('/child-officer/enumerators/{enumerator}', [EnumeratorManagementController::class, 'update'])->name('child_officer.enumerators.update');
+    Route::delete('/child-officer/enumerators/{enumerator}', [EnumeratorManagementController::class, 'destroy'])->name('child_officer.enumerators.destroy');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Survey Enumerator Area (Secured via Name & Common Access Password)
+|--------------------------------------------------------------------------
+*/
+Route::get('/enumerator/verify', [EnumeratorDashboardController::class, 'showVerify'])
+    ->name('enumerator.verify');
+Route::post('/enumerator/verify', [EnumeratorDashboardController::class, 'verify'])
+    ->name('enumerator.verify.post');
+Route::post('/enumerator/qr/lookup', [EnumeratorDashboardController::class, 'lookupChild'])
+    ->middleware('throttle:30,1')
+    ->name('enumerator.qr.lookup');
+Route::post('/enumerator/child-sync/download', [OfflineChildSyncController::class, 'downloadAssignedForEnumerator'])
+    ->middleware('throttle:20,1')
+    ->name('enumerator.child-sync.download');
+Route::get('/enumerator/switch', [EnumeratorDashboardController::class, 'switchIdentity'])
+    ->name('enumerator.switch');
+Route::get('/enumerator/dashboard', [EnumeratorDashboardController::class, 'dashboard'])
+    ->name('enumerator.dashboard');
+Route::get('/enumerator/survey/{questionnaire}', [EnumeratorSurveyController::class, 'create'])
+    ->name('enumerator.survey.create');
+Route::post('/enumerator/survey/{questionnaire}', [EnumeratorSurveyController::class, 'store'])
+    ->name('enumerator.survey.store');

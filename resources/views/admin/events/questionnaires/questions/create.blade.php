@@ -295,7 +295,9 @@
     </style>
 </head>
 
-<body>
+<body class="admin-layout-body">
+
+@include('components.admin-sidebar')
 
 <div class="page">
 
@@ -371,6 +373,8 @@
 
                     <option value="text">Text Box</option>
                     <option value="textarea">Long Text</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone Number</option>
                     <option value="radio">Radio Button</option>
                     <option value="select">Dropdown</option>
                     <option value="checkbox">Checkbox</option>
@@ -484,6 +488,55 @@
 
             </div>
 
+            {{-- ADVANCED QUESTION SETTINGS --}}
+            <details style="margin-top: 15px; padding: 15px; background: #fbfdfc; border: 1px solid #dcece1; border-radius: 12px;">
+                <summary style="font-weight: 700; color: #2e7d32; cursor: pointer;">
+                    ⚙️ Question Settings & Validation Rules
+                </summary>
+
+                <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label for="placeholder" style="font-size: 13px;">Placeholder Text</label>
+                        <input type="text" id="placeholder" name="placeholder" value="{{ old('placeholder') }}" placeholder="e.g. Enter full name...">
+                    </div>
+
+                    <div>
+                        <label for="help_text" style="font-size: 13px;">Help Text / Instructions</label>
+                        <input type="text" id="help_text" name="help_text" value="{{ old('help_text') }}" placeholder="Guidance for respondent or enumerator...">
+                    </div>
+
+                    <div>
+                        <label for="min_length" style="font-size: 13px;">Min Character Length</label>
+                        <input type="number" id="min_length" name="min_length" value="{{ old('min_length') }}" placeholder="e.g. 2">
+                    </div>
+
+                    <div>
+                        <label for="max_length" style="font-size: 13px;">Max Character Length</label>
+                        <input type="number" id="max_length" name="max_length" value="{{ old('max_length') }}" placeholder="e.g. 100">
+                    </div>
+
+                    <div>
+                        <label for="min_value" style="font-size: 13px;">Min Numerical Value</label>
+                        <input type="number" id="min_value" name="min_value" value="{{ old('min_value') }}" placeholder="e.g. 0">
+                    </div>
+
+                    <div>
+                        <label for="max_value" style="font-size: 13px;">Max Numerical Value</label>
+                        <input type="number" id="max_value" name="max_value" value="{{ old('max_value') }}" placeholder="e.g. 120">
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding: 12px; background: #f0f7f2; border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #1e4b26;">
+                        <input type="checkbox" name="is_primary_identifier" value="1" {{ old('is_primary_identifier') ? 'checked' : '' }}>
+                        🔑 Designate as Primary Identifier (Prevent Duplicate Submissions)
+                    </label>
+                    <div style="font-size: 12px; color: #627467; margin-top: 4px; margin-left: 24px;">
+                        Submissions with the same answer for this question will be rejected as duplicates.
+                    </div>
+                </div>
+            </details>
+
             <div class="actions">
 
                 <a
@@ -535,7 +588,9 @@
         date: 'Date',
         time: 'Time',
         yes_no: 'Yes / No',
-        rating: 'Rating'
+        rating: 'Rating',
+        email: 'Email',
+        phone: 'Phone Number'
     };
 
     function detectQuestionType(text) {
@@ -644,11 +699,25 @@
             return 'textarea';
         }
 
+        /* Email */
+        if (value.includes('email') || value.includes('e-mail')) {
+            return 'email';
+        }
+
+        /* Phone */
+        if (
+            value.includes('phone') ||
+            value.includes('mobile') ||
+            value.includes('contact number') ||
+            value.includes('telephone') ||
+            value.includes('cell')
+        ) {
+            return 'phone';
+        }
+
         /* Normal text */
         if (
             value.includes('name') ||
-            value.includes('email') ||
-            value.includes('phone') ||
             value.includes('school') ||
             value.includes('occupation')
         ) {

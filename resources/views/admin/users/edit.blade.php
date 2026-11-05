@@ -14,12 +14,17 @@
         }
 
         body {
+            display: flex;
+            flex-wrap: wrap;
+            min-height: 100vh;
             font-family: Arial, sans-serif;
             background: #f1f7f3;
             color: #26352b;
         }
 
         .page {
+            flex: 1;
+            min-width: 0;
             min-height: 100vh;
             padding: 30px;
         }
@@ -203,6 +208,8 @@
 </head>
 
 <body>
+
+@include('components.admin-sidebar')
 
 <div class="page">
 

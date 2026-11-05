@@ -447,12 +447,14 @@
             ← Back to Dashboard
         </a>
 
+        @if(auth()->user()->isAdmin())
         <a
-            href="{{ auth()->user()->isAdmin() ? route('admin.offline_qr', ['tool' => 'generator']) : route('child_officer.offline_qr', ['tool' => 'generator']) }}"
+            href="{{ route('admin.offline_qr', ['tool' => 'generator']) }}"
             style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:#e8f5e9; color:#2e7d32; border-radius:9px; text-decoration:none; font-weight:600; font-size:13px; border:1px solid #cde3d1;"
         >
             ⚡ Open Offline QR (No Network Mode) →
         </a>
+        @endif
     </div>
 
     <h1 class="page-title">
@@ -710,6 +712,8 @@
 </div>
 
 
+<script src="{{ asset('js/offline-child-cache.js') }}"></script>
+
 <script
     src="{{ asset('js/html5-qrcode.min.js') }}"
     type="text/javascript"
@@ -761,11 +765,13 @@
 
         // Check if QR contains self-contained JSON (Offline QR code)
         let offlineChild = null;
+        let childCode = '';
         try {
             const trimmed = decodedText.trim();
             if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
                 const parsed = JSON.parse(trimmed);
                 if (parsed.code || parsed.name) {
+                    childCode = parsed.code || '';
                     offlineChild = {
                         id: parsed.id || 0,
                         child_code: parsed.code || 'N/A',
@@ -779,6 +785,8 @@
                         status: parsed.status || 'Active'
                     };
                 }
+            } else if (trimmed && !trimmed.includes('/qr/scan/')) {
+                childCode = trimmed;
             }
         } catch (e) {
             // Not JSON, continue to server lookup
@@ -787,6 +795,27 @@
         if (offlineChild) {
             displayChildData(offlineChild, true);
             await stopScanner();
+            processingQR = false;
+            return;
+        }
+
+        const findSavedChild = async () => {
+            if (!childCode || !window.KFHIChildOfflineCache) return null;
+            return window.KFHIChildOfflineCache.findByCode(childCode);
+        };
+
+        if (!navigator.onLine) {
+            try {
+                const savedChild = await findSavedChild();
+                if (savedChild) {
+                    displayChildData(savedChild, true);
+                    await stopScanner();
+                    processingQR = false;
+                    return;
+                }
+            } catch (error) {}
+
+            updateStatus('This child is not saved on this device. Connect and sync the child first.');
             processingQR = false;
             return;
         }
@@ -848,10 +877,16 @@
         } catch (error) {
 
             console.error(error);
+            try {
+                const savedChild = await findSavedChild();
+                if (savedChild) {
+                    displayChildData(savedChild, true);
+                    await stopScanner();
+                    return;
+                }
+            } catch (localError) {}
 
-            updateStatus(
-                "Unable to verify the QR code. Please try again."
-            );
+            updateStatus('Unable to contact the server, and this child is not saved on this device.');
 
         } finally {
 
@@ -907,23 +942,6 @@
                 ? "Child identified successfully (Offline QR Code - No Network Needed)."
                 : "Child identified successfully."
         );
-    }
-
-
-        } catch (error) {
-
-            console.error(error);
-
-            updateStatus(
-                "Unable to verify the QR code. Please try again."
-            );
-
-        } finally {
-
-            processingQR = false;
-
-        }
-
     }
 
 

@@ -1,4 +1,17 @@
 <style>
+    body.admin-layout-body {
+        display: flex;
+        flex-wrap: wrap;
+        min-height: 100vh;
+        margin: 0;
+    }
+
+    body.admin-layout-body > .page,
+    body.admin-layout-body > .container {
+        flex: 1 1 calc(100% - 250px);
+        min-width: 0;
+    }
+
     .admin-app-sidebar {
         position: sticky;
         z-index: 20;
@@ -168,6 +181,11 @@
         body.sidebar-collapsed .admin-sidebar-toggle {
             left: auto;
         }
+
+        body.admin-layout-body > .page,
+        body.admin-layout-body > .container {
+            flex-basis: 100%;
+        }
     }
 </style>
 
@@ -180,9 +198,9 @@
 
     <div class="admin-nav-title">Main Menu</div>
     <a class="admin-nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">Dashboard</a>
-    <a class="admin-nav-link" href="{{ route('users.index') }}">User Management</a>
-    <a class="admin-nav-link" href="{{ route('children.index') }}">Child Management</a>
-    <a class="admin-nav-link" href="{{ route('guardians.index') }}">Guardians</a>
+    <a class="admin-nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">User Management</a>
+    <a class="admin-nav-link {{ request()->routeIs('children.*') ? 'active' : '' }}" href="{{ route('children.index') }}">Child Management</a>
+    <a class="admin-nav-link {{ request()->routeIs('guardians.*') ? 'active' : '' }}" href="{{ route('guardians.index') }}">Guardians</a>
 
     <details {{ request()->routeIs('admin.qr.scan', 'admin.offline_qr') ? 'open' : '' }}>
         <summary class="admin-identification-toggle {{ request()->routeIs('admin.qr.scan', 'admin.offline_qr') ? 'active' : '' }}">Identification</summary>
@@ -195,9 +213,11 @@
     </details>
 
     <div class="admin-nav-title">Activities</div>
-    <a class="admin-nav-link" href="{{ route('events.index') }}">Events</a>
+    <a class="admin-nav-link {{ request()->routeIs('events.*') ? 'active' : '' }}" href="{{ route('events.index') }}">Events</a>
+    <a class="admin-nav-link {{ request()->routeIs('admin.responses.*') ? 'active' : '' }}" href="{{ route('admin.responses.index') }}">Form Responses</a>
+    <a class="admin-nav-link {{ request()->routeIs('admin.enumerators.*') ? 'active' : '' }}" href="{{ route('admin.enumerators.index') }}">Enumerators</a>
+    <a class="admin-nav-link {{ request()->routeIs('enumerator.*') ? 'active' : '' }}" href="{{ route('enumerator.dashboard') }}">Enumerator Portal ↗</a>
     <a class="admin-nav-link" href="{{ route('events.index') }}">Attendance</a>
-    <a class="admin-nav-link" href="#">Questionnaires</a>
     <a class="admin-nav-link" href="#">Follow-ups</a>
     <div class="admin-nav-title">System</div>
     <a class="admin-nav-link" href="#">Reports</a>

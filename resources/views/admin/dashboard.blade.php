@@ -23,6 +23,7 @@
         .layout {
             min-height: 100vh;
             display: flex;
+            flex-wrap: wrap;
         }
 
         /* Sidebar */
@@ -115,8 +116,8 @@
         /* Main */
 
         .main {
-            margin-left: 250px;
-            width: calc(100% - 250px);
+            flex: 1;
+            min-width: 0;
             padding: 30px;
         }
 
@@ -289,8 +290,9 @@
             }
 
             .main {
-                margin-left: 200px;
-                width: calc(100% - 200px);
+                margin-left: 0;
+                width: auto;
+                flex: 1;
             }
 
             .topbar {
@@ -329,95 +331,7 @@
 
 <div class="layout">
 
-    <!-- Sidebar -->
-
-    <aside class="sidebar">
-
-        <div class="brand">
-
-            <img
-                src="{{ asset('images/logo.png') }}"
-                alt="KFHI Logo"
-            >
-
-            <h2>KFHI-CMS</h2>
-
-            <p>Child Management System</p>
-
-        </div>
-
-        <nav class="nav">
-
-<div class="nav-title">
-    Main Menu
-</div>
-
-<a href="{{ route('admin.dashboard') }}" class="active">
-    Dashboard
-</a>
-
-<a href="{{ route('users.index') }}">
-    User Management
-</a>
-
-<a href="{{ route('children.index') }}">
-    Child Management
-</a>
-
-<a href="{{ route('admin.offline_qr') }}">
-    Offline QR
-</a>
-
-<a href="{{ route('guardians.index') }}">
-    Guardians
-</a>
-
-<a href="{{ route('events.index') }}">
-    Events
-</a>
-
-<a href="#">
-    Questionnaires
-</a>
-
-<a href="{{ route('events.index') }}">
-    Attendance
-</a>
-
-<a href="#">
-    Follow-ups
-</a>
-
-<div class="nav-title" style="margin-top: 25px;">
-    System
-</div>
-
-<a href="#">
-    Reports
-</a>
-
-<a href="#">
-    Audit Logs
-</a>
-
-</nav>
-        </nav>
-
-        <form
-            method="POST"
-            action="{{ route('logout') }}"
-            class="logout-form"
-        >
-
-            @csrf
-
-            <button type="submit" class="logout-button">
-                Logout
-            </button>
-
-        </form>
-
-    </aside>
+    @include('components.admin-sidebar')
 
 
     <!-- Main Content -->

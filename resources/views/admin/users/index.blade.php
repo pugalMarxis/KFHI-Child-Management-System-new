@@ -15,12 +15,17 @@
         }
 
         body {
+            display: flex;
+            flex-wrap: wrap;
+            min-height: 100vh;
             font-family: Arial, sans-serif;
             background: #f2f7f4;
             color: #26352b;
         }
 
         .page {
+            flex: 1;
+            min-width: 0;
             min-height: 100vh;
             padding: 32px;
         }
@@ -459,6 +464,8 @@
 </head>
 
 <body>
+
+@include('components.admin-sidebar')
 
 <div class="page">
 

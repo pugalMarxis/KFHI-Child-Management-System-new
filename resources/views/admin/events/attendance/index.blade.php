@@ -214,7 +214,9 @@
     </style>
 </head>
 
-<body>
+<body class="admin-layout-body">
+
+@include('components.admin-sidebar')
 
 <div class="container">
 
@@ -351,6 +353,8 @@
 </div>
 
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="{{ asset('js/html5-qrcode.min.js') }}"></script>
+
 <script>
 
     const form = document.getElementById('scanForm');

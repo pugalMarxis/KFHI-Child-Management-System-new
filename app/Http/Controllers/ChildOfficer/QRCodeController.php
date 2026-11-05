@@ -5,8 +5,8 @@ namespace App\Http\Controllers\ChildOfficer;
 use App\Http\Controllers\Controller;
 use App\Models\Child;
 use App\Models\QRCode;
-use App\Services\QRCodeService;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 
 class QRCodeController extends Controller
 {
@@ -15,52 +15,9 @@ class QRCodeController extends Controller
         return view('child_officer.qr.scan');
     }
 
-    public function offlineQr(Request $request, QRCodeService $qrService)
+    public function offlineQr(): RedirectResponse
     {
-        $children = Child::with('guardians')
-            ->orderBy('first_name')
-            ->get();
-
-        $selectedChildId = $request->query('child_id');
-
-        $childrenData = $children->map(function ($child) use ($qrService) {
-            $primaryGuardian = $child->guardians->where('is_primary', true)->first()
-                ?: $child->guardians->first();
-
-            return [
-                'id' => $child->id,
-                'child_code' => $child->child_code,
-                'full_name' => trim(
-                    $child->first_name . ' ' .
-                    ($child->middle_name ? $child->middle_name . ' ' : '') .
-                    $child->last_name
-                ),
-                'first_name' => $child->first_name,
-                'middle_name' => $child->middle_name,
-                'last_name' => $child->last_name,
-                'gender' => $child->gender,
-                'date_of_birth' => $child->date_of_birth ? $child->date_of_birth->format('Y-m-d') : '',
-                'school_name' => $child->school_name,
-                'grade' => $child->grade,
-                'district' => $child->district,
-                'gn_division' => $child->gn_division,
-                'status' => $child->status ?? 'active',
-                'profile_photo' => $child->profile_photo ? asset('storage/' . $child->profile_photo) : null,
-                'guardian_name' => $primaryGuardian ? $primaryGuardian->full_name : '',
-                'guardian_relation' => $primaryGuardian ? $primaryGuardian->relationship : '',
-                'guardian_phone' => $primaryGuardian ? $primaryGuardian->phone : '',
-                'offline_payload' => $qrService->generateOfflinePayload($child),
-            ];
-        });
-
-        return view('child_officer.qr.offline', [
-            'children' => $children,
-            'childrenData' => $childrenData,
-            'selectedChildId' => $selectedChildId,
-            'activeTool' => in_array($request->query('tool'), ['generator', 'scanner', 'log'], true)
-                ? $request->query('tool')
-                : 'scanner',
-        ]);
+        return redirect()->route('child_officer.qr.scan');
     }
 
     public function lookup(Request $request)
@@ -88,11 +45,7 @@ class QRCodeController extends Controller
                         'child' => [
                             'id' => $child->id,
                             'child_code' => $child->child_code,
-                            'full_name' => trim(
-                                $child->first_name . ' ' .
-                                ($child->middle_name ?? '') . ' ' .
-                                $child->last_name
-                            ),
+                            'full_name' => trim(preg_replace('/\s+/', ' ', $child->first_name . ' ' . ($child->middle_name ?? '') . ' ' . $child->last_name)),
                             'gender' => $child->gender,
                             'date_of_birth' => $child->date_of_birth
                                 ? $child->date_of_birth->format('Y-m-d')
@@ -126,6 +79,36 @@ class QRCodeController extends Controller
             }
         }
 
+        // Synced child ID cards contain only the permanent child code.
+        // Accept that code as well as the older URL-token and JSON QR formats.
+        if (!str_contains($scannedValue, '/qr/scan/')) {
+            $child = Child::where('child_code', $scannedValue)->first();
+
+            if (!$child) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This child code was not found. Check that this child is registered in the CMS.',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Child identified successfully from the synced child code.',
+                'child' => [
+                    'id' => $child->id,
+                    'child_code' => $child->child_code,
+                    'full_name' => trim(preg_replace('/\\s+/', ' ', $child->first_name . ' ' . ($child->middle_name ?? '') . ' ' . $child->last_name)),
+                    'gender' => $child->gender,
+                    'date_of_birth' => $child->date_of_birth?->format('Y-m-d'),
+                    'school_name' => $child->school_name,
+                    'grade' => $child->grade,
+                    'district' => $child->district,
+                    'gn_division' => $child->gn_division,
+                    'status' => $child->status,
+                ],
+            ]);
+        }
+
         /*
          * The existing KFHI QR code contains:
          *
@@ -142,23 +125,14 @@ class QRCodeController extends Controller
             ], 400);
         }
 
-        $prefix = '/qr/scan/';
-
-        if (!str_starts_with($path, $prefix)) {
+        if (!preg_match('~(?:^|/)qr/scan/([^/]+)$~', $path, $matches)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid KFHI QR code.',
             ], 400);
         }
 
-        $token = substr($path, strlen($prefix));
-
-        if ($token === '') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid QR code token.',
-            ], 400);
-        }
+        $token = $matches[1];
 
         // Hash the original token exactly like QRCodeService.
         $tokenHash = hash('sha256', $token);
@@ -199,11 +173,7 @@ class QRCodeController extends Controller
 
                 'child_code' => $child->child_code,
 
-                'full_name' => trim(
-                    $child->first_name . ' ' .
-                    ($child->middle_name ?? '') . ' ' .
-                    $child->last_name
-                ),
+                'full_name' => trim(preg_replace('/\s+/', ' ', $child->first_name . ' ' . ($child->middle_name ?? '') . ' ' . $child->last_name)),
 
                 'gender' => $child->gender,
 

@@ -1,4 +1,17 @@
 <style>
+    body.admin-layout-body {
+        display: flex;
+        flex-wrap: wrap;
+        min-height: 100vh;
+        margin: 0;
+    }
+
+    body.admin-layout-body > .page,
+    body.admin-layout-body > .container {
+        flex: 1 1 calc(100% - 250px);
+        min-width: 0;
+    }
+
     .child-officer-sidebar {
         position: sticky;
         z-index: 20;
@@ -168,6 +181,11 @@
         body.sidebar-collapsed .child-officer-sidebar-toggle {
             left: auto;
         }
+
+        body.admin-layout-body > .page,
+        body.admin-layout-body > .container {
+            flex-basis: 100%;
+        }
     }
 </style>
 
@@ -185,18 +203,13 @@
     <a class="co-nav-link {{ request()->routeIs('child_officer.children.create', 'child_officer.children.edit') ? 'active' : '' }}" href="{{ route('child_officer.children.create') }}">Register Child</a>
     <a class="co-nav-link" href="{{ route('child_officer.guardians.create') }}">Guardians</a>
 
-    <details {{ request()->routeIs('child_officer.qr.scan', 'child_officer.offline_qr') ? 'open' : '' }}>
-        <summary class="co-identification-toggle {{ request()->routeIs('child_officer.qr.scan', 'child_officer.offline_qr') ? 'active' : '' }}">Identification</summary>
-        <div class="co-identification-links">
-            <a class="co-nav-link {{ request()->routeIs('child_officer.qr.scan') ? 'active' : '' }}" href="{{ route('child_officer.qr.scan') }}">Online QR Scanner</a>
-            <a class="co-nav-link {{ request()->routeIs('child_officer.offline_qr') && request('tool', 'generator') === 'generator' ? 'active' : '' }}" href="{{ route('child_officer.offline_qr', ['tool' => 'generator']) }}">Offline QR Generator</a>
-            <a class="co-nav-link {{ request()->routeIs('child_officer.offline_qr') && request('tool') === 'scanner' ? 'active' : '' }}" href="{{ route('child_officer.offline_qr', ['tool' => 'scanner']) }}">Offline QR Scanner</a>
-            <a class="co-nav-link {{ request()->routeIs('child_officer.offline_qr') && request('tool') === 'log' ? 'active' : '' }}" href="{{ route('child_officer.offline_qr', ['tool' => 'log']) }}">Field Scan Log</a>
-            <a class="co-nav-link" href="#">Digital IDs</a>
-        </div>
-    </details>
+    <div class="co-nav-title">Identification</div>
+    <a class="co-nav-link {{ request()->routeIs('child_officer.qr.scan', 'child_officer.offline_qr') ? 'active' : '' }}" href="{{ route('child_officer.qr.scan') }}">QR Scanner</a>
 
     <div class="co-nav-title">Activities</div>
+    <a class="co-nav-link {{ request()->routeIs('child_officer.responses.*', 'admin.responses.*') ? 'active' : '' }}" href="{{ route('child_officer.responses.index') }}">Form Responses</a>
+    <a class="co-nav-link {{ request()->routeIs('child_officer.enumerators.*', 'admin.enumerators.*') ? 'active' : '' }}" href="{{ route('child_officer.enumerators.index') }}">Enumerators</a>
+    <a class="co-nav-link {{ request()->routeIs('enumerator.*') ? 'active' : '' }}" href="{{ route('enumerator.dashboard') }}">Enumerator Portal ↗</a>
     <a class="co-nav-link {{ request()->routeIs('child_officer.follow-ups.*') ? 'active' : '' }}" href="{{ route('child_officer.follow-ups.index') }}">Follow-ups</a>
     <div class="co-nav-title">Reports</div>
 

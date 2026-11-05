@@ -168,7 +168,9 @@
     </style>
 </head>
 
-<body>
+<body class="admin-layout-body">
+
+@include('components.admin-sidebar')
 
 <div class="page">
 
@@ -178,9 +180,14 @@
             <p>Manage registered children and their information.</p>
         </div>
 
-        <a href="{{ route('children.create') }}" class="add-btn">
-            + Add New Child
-        </a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="{{ route('admin.child-sync.index') }}" class="add-btn" style="background:#eaf3ed;color:#245c3a;">
+                Sync children for offline use
+            </a>
+            <a href="{{ route('children.create') }}" class="add-btn">
+                + Add New Child
+            </a>
+        </div>
     </div>
     <form method="GET" action="{{ route('children.index') }}" style="
     background:#ffffff;

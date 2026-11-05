@@ -171,9 +171,6 @@
             <summary class="identification-toggle">Identification</summary>
             <div class="identification-links">
                 <a class="nav-link" href="{{ route('child_officer.qr.scan') }}">Online QR Scanner</a>
-                <a class="nav-link" href="{{ route('child_officer.offline_qr', ['tool' => 'generator']) }}">Offline QR Generator</a>
-                <a class="nav-link" href="{{ route('child_officer.offline_qr', ['tool' => 'scanner']) }}">Offline QR Scanner</a>
-                <a class="nav-link" href="{{ route('child_officer.offline_qr', ['tool' => 'log']) }}">Field Scan Log</a>
                 <a class="nav-link" href="#">Digital IDs</a>
             </div>
         </details>

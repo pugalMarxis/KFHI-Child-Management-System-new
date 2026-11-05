@@ -300,8 +300,6 @@
             <a class="sidebar-link" href="{{ route('child_officer.guardians.create') }}">Guardians</a>
             <div class="sidebar-label">Identification</div>
             <a class="sidebar-link" href="{{ route('child_officer.qr.scan') }}">Online QR Scanner</a>
-            <a class="sidebar-link" href="{{ route('child_officer.offline_qr', ['tool' => 'generator']) }}">Offline QR Generator</a>
-            <a class="sidebar-link" href="{{ route('child_officer.offline_qr', ['tool' => 'scanner']) }}">Offline QR Scanner</a>
         @endif
     </nav>
     <form method="POST" action="{{ route('logout') }}" style="margin-top:20px;">

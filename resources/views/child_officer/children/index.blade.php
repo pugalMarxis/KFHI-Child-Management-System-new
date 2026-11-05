@@ -380,6 +380,10 @@
                 Search, filter and view registered children.
             </p>
 
+            <a href="{{ route('admin.child-sync.index') }}" class="nav-link" style="display:inline-block;margin-top:12px;">
+                Sync children for offline use
+            </a>
+
         </section>
 
 

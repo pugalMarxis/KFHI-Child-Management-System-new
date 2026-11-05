@@ -118,7 +118,7 @@ class ChildController extends Controller
             $profilePhotoPath = $request->file('profile_photo')
                 ->store('children', 'public');
         }
-        Child::create([
+        $child = Child::create([
             'child_code' => $validated['child_code'],
             'first_name' => $validated['first_name'],
             'middle_name' => $validated['middle_name'] ?? null,
@@ -137,8 +137,8 @@ class ChildController extends Controller
         ]);
     
         return redirect()
-            ->route('children.index')
-            ->with('success', 'Child registered successfully.');
+            ->route('children.show', $child)
+            ->with('success', 'Child registered successfully. Generate the secure QR code from this page.');
     }
 
     public function show(Child $child): View

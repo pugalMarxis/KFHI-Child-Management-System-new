@@ -15,6 +15,8 @@ class QRCodeController extends Controller
         Child $child,
         QRCodeService $qrCodeService
     ): RedirectResponse {
+        $this->authorizeAdmin();
+
         $child->qrCode()
             ->where('status', 'active')
             ->update([
@@ -33,6 +35,8 @@ class QRCodeController extends Controller
 
     public function show(Child $child): View
     {
+        $this->authorizeAdmin();
+
         $qrCode = $child->qrCode;
 
         return view(
@@ -68,6 +72,8 @@ class QRCodeController extends Controller
 
     public function offlineQr(Request $request, QRCodeService $qrService): View
     {
+        $this->authorizeAdmin();
+
         $children = Child::with('guardians')
             ->orderBy('first_name')
             ->get();
@@ -113,12 +119,19 @@ class QRCodeController extends Controller
 
     public function downloadOfflineSvg(Child $child, QRCodeService $qrService)
     {
+        $this->authorizeAdmin();
+
         $svg = $qrService->generateOfflineSvg($child, 400);
 
         return response($svg, 200, [
             'Content-Type' => 'image/svg+xml',
             'Content-Disposition' => 'attachment; filename="' . $child->child_code . '_offline_qr.svg"',
         ]);
+    }
+
+    private function authorizeAdmin(): void
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403);
     }
 
 }

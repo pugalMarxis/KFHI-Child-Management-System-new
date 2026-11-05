@@ -18,12 +18,19 @@ class Attendance extends Model
         'method',
         'status',
         'remarks',
+        'attendance_date',
+        'event_uuid',
+        'device_id',
+        'client_attended_at',
+        'sync_payload_hash',
     ];
 
     protected function casts(): array
     {
         return [
-            'attendance_time' => 'datetime',
+            'attendance_date' => 'date',
+            'client_attended_at' => 'datetime',
+            'attendance_time' => 'datetime'
         ];
     }
 

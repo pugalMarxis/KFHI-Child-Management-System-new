@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -66,12 +67,21 @@ class Child extends Model
         return $this->hasMany(Guardian::class);
     }
 
+    public function allowedEnumerators(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Enumerator::class,
+            'enumerator_child_assignments'
+        )->withPivot('allowed_by', 'include_family_details')->withTimestamps();
+    }
+
+
     /**
      * QR code assigned to this child.
      */
     public function qrCode(): HasOne
     {
-        return $this->hasOne(QRCode::class);
+        return $this->hasOne(QRCode::class)->latestOfMany();
     }
 
     /**

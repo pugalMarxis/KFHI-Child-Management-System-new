@@ -1010,24 +1010,15 @@
                 </h3>
 
                 <p>
-                    View the secure QR identification associated with this child.
+                    Scan a child's QR code to identify a registered child.
                 </p>
 
-                @if($child->qrCode)
-                    <a
-                        href="{{ route('children.qr.show', $child) }}"
-                        class="action-btn"
-                    >
-                        View QR
-                    </a>
-                @endif
-
                 <a
-                    href="{{ route('child_officer.offline_qr') }}"
+                    href="{{ route('child_officer.qr.scan') }}"
                     class="action-btn"
                     style="background:#e8f5e9; color:#2e7d32; margin-left:6px; border:1px solid #c8e6c9;"
                 >
-                    ⚡ Offline QR Studio
+                    Open QR Scanner
                 </a>
             </div>
 
