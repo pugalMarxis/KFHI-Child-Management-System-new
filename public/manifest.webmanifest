@@ -1,0 +1,17 @@
+{
+  "name": "KFHI Child Attendance",
+  "short_name": "KFHI Attendance",
+  "start_url": "./offline-attendance.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef7f1",
+  "theme_color": "#245b3b",
+  "icons": [
+    {
+      "src": "./images/logo.png",
+      "sizes": "1000x1000",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

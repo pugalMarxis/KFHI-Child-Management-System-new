@@ -14,6 +14,21 @@ use Illuminate\Support\Facades\Validator;
 
 class AttendanceSyncController extends Controller
 {
+    public function token(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $user && $user->isActive()
+                && ($user->isAdmin() || $user->isChildOfficer()),
+            403,
+            'You are not allowed to synchronize attendance.'
+        );
+
+        return response()->json(['csrf_token' => csrf_token()])
+            ->header('Cache-Control', 'private, no-store');
+    }
+
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();

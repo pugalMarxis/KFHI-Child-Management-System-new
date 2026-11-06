@@ -77,6 +77,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/attendance/sync', [AttendanceSyncController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('attendance.sync');
+    Route::get('/attendance/sync/token', [AttendanceSyncController::class, 'token'])
+        ->middleware('throttle:60,1')
+        ->name('attendance.sync.token');
 
     /*
     |--------------------------------------------------------------------------

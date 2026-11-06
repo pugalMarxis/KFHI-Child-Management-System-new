@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#245b3b">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <title>Offline attendance | KFHI</title>
+    <style>
+        :root { color-scheme: light; font-family: Arial, sans-serif; background: #eef7f1; color: #183b2a; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 20px; }
+        main { width: min(680px, 100%); margin: 20px auto; padding: 22px; background: white; border-radius: 16px; box-shadow: 0 8px 28px #183b2a18; }
+        h1 { margin: 0 0 8px; font-size: 1.5rem; }
+        p { line-height: 1.5; }
+        .status, .message { padding: 12px; border-radius: 10px; margin: 12px 0; background: #edf2ee; }
+        .message.error { background: #fff0ed; color: #8d2b1d; }
+        .message.success { background: #e9f7ed; color: #245b3b; }
+        input, button, a.button { width: 100%; min-height: 46px; margin-top: 10px; padding: 10px 14px; border-radius: 9px; font-size: 1rem; }
+        input { border: 1px solid #9bad9f; }
+        button, a.button { display: block; border: 0; background: #245b3b; color: white; text-align: center; text-decoration: none; cursor: pointer; }
+        #reader { width: 100%; max-width: 460px; margin: 14px auto; }
+        .small { font-size: .9rem; color: #53675a; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>KFHI Attendance</h1>
+    <p id="eventTitle">Loading event…</p>
+    <div id="connectionStatus" class="status" role="status">Checking connection…</div>
+    <p id="pendingCount" class="small">Checking saved attendance…</p>
+
+    <div id="reader"></div>
+    <button id="startCamera" type="button">Start QR scanner</button>
+
+    <form id="attendanceForm">
+        <label for="childCode">Or enter a child code</label>
+        <input id="childCode" autocomplete="off" required>
+        <button type="submit">Save attendance</button>
+    </form>
+
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+    <button id="syncButton" type="button">Sync saved attendance</button>
+    <a class="button" href="./offline-child-cards.html">View saved child cards</a>
+</main>
+
+<script src="./js/html5-qrcode.min.js"></script>
+<script src="./js/offline-child-cache.js"></script>
+<script src="./js/offline-attendance.js"></script>
+<script src="./js/offline-attendance-app.js"></script>
+</body>
+</html>
