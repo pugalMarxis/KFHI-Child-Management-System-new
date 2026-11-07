@@ -694,7 +694,7 @@
                     @csrf
                     <button type="submit" class="btn btn-primary"
                             onclick="return confirm('Publish this questionnaire and generate the public share link?')">
-                        🚀 Publish
+                        🚀  Publish Questionnaire
                     </button>
                 </form>
             @endif

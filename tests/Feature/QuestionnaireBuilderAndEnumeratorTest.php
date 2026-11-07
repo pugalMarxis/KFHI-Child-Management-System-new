@@ -539,7 +539,7 @@ class QuestionnaireBuilderAndEnumeratorTest extends TestCase
     {
         // Set common password to 'secret2026'
         Enumerator::setCommonPassword('secret2026');
-        $this->assertEquals('secret2026', Enumerator::getCommonPassword());
+        $this->assertTrue(Enumerator::verifyCommonPassword('secret2026'));
 
         // A field enumerator enters their name and common password without being pre-registered
         $response = $this->post(route('enumerator.verify.post'), [
@@ -564,7 +564,7 @@ class QuestionnaireBuilderAndEnumeratorTest extends TestCase
             ])
             ->assertSessionHas('success');
 
-        $this->assertEquals('newpass777', Enumerator::getCommonPassword());
+        $this->assertTrue(Enumerator::verifyCommonPassword('newpass777'));
     }
 
     public function test_public_form_qr_lookup_and_inline_enumerator_verification(): void
@@ -865,8 +865,8 @@ class QuestionnaireBuilderAndEnumeratorTest extends TestCase
         $enumerator = Enumerator::create([
             'name' => 'Hassan Musa',
             'enumerator_code' => 'ENUM-01',
-            'phone' => '0771234567',
-            'common_password' => 'secret123',
+            'phone' => '0771234567',       
+            'pin_code' => 'secret123',
             'status' => 'active',
         ]);
 
