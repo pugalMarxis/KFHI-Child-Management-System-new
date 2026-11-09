@@ -7,6 +7,7 @@ use App\Models\Enumerator;
 use App\Models\Questionnaire;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -147,6 +148,48 @@ class EnumeratorManagementController extends Controller
         Enumerator::setCommonPassword($validated['common_password']);
 
         return back()->with('success', 'Common Enumerator Access Password updated successfully.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $this->authorizeStaff($request);
+
+        $validated = $request->validate([
+            'enumerator_ids' => ['required', 'array', 'min:1', 'max:500'],
+            'enumerator_ids.*' => ['required', 'integer', 'distinct', 'exists:enumerators,id'],
+        ]);
+
+        $deletedCount = DB::transaction(function () use ($validated) {
+            $enumerators = Enumerator::query()
+                ->whereIn('id', $validated['enumerator_ids'])
+                ->lockForUpdate()
+                ->get();
+
+            if ($enumerators->count() !== count($validated['enumerator_ids'])) {
+                return null;
+            }
+
+            if ($enumerators->contains(fn (Enumerator $enumerator) => $enumerator->enumerator_code === 'GLOBAL_PASSWORD')) {
+                return false;
+            }
+
+            $enumerators->each->delete();
+            return $enumerators->count();
+        });
+
+        if ($deletedCount === false) {
+            return back()->withErrors([
+                'bulk_delete' => 'Nothing was deleted. The shared enumerator password record cannot be deleted here.',
+            ]);
+        }
+
+        if ($deletedCount === null) {
+            return back()->withErrors([
+                'bulk_delete' => 'Nothing was deleted. One or more selected enumerators are no longer available. Refresh the page and try again.',
+            ]);
+        }
+
+        return back()->with('success', "Deleted {$deletedCount} selected enumerator(s). Their submitted responses were kept.");
     }
 
     private function authorizeStaff(Request $request): void

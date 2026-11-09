@@ -204,7 +204,7 @@
     <a class="co-nav-link" href="{{ route('child_officer.guardians.create') }}">Guardians</a>
 
     <div class="co-nav-title">Identification</div>
-    <a class="co-nav-link {{ request()->routeIs('child_officer.qr.scan', 'child_officer.offline_qr') ? 'active' : '' }}" href="{{ route('child_officer.qr.scan') }}">QR Scanner</a>
+    <a class="co-nav-link {{ request()->routeIs('child_officer.qr.scan') ? 'active' : '' }}" href="{{ route('child_officer.qr.scan') }}">QR Scanner</a>
 
     <div class="co-nav-title">Activities</div>
     <a class="co-nav-link {{ request()->routeIs('child_officer.responses.*', 'admin.responses.*') ? 'active' : '' }}" href="{{ route('child_officer.responses.index') }}">Form Responses</a>

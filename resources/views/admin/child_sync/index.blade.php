@@ -35,7 +35,7 @@
     <a class="link-button secondary" href="{{ auth()->user()->role === 'child_officer' ? route('child_officer.children.index') : route('children.index') }}">← Back to children</a>
     <section class="panel">
         <h1>Prepare child details for offline use</h1>
-        <p>Download children to this device. You can also allow one, several, or all active enumerators to sync these children onto their own phones.</p>
+        <p>Download child records to this device for offline use. The existing Child Management add and edit pages can save changes on this device and sync them later.</p>
         <div class="status" id="syncStatus" role="status">Checking this device’s saved child records…</div>
         @if(auth()->user()->role === 'admin')
         <div class="actions">
@@ -100,10 +100,12 @@
             </table>
         </div>
         <div class="actions">
+            <button type="button" id="syncSaved" class="secondary">Update saved children</button>
             <button type="button" id="syncSelected" class="secondary" disabled>Download selected children</button>
             <button type="button" id="syncFiltered" class="secondary">Download all matching filters</button>
             <button type="button" id="syncAll" class="warning">Download all children</button>
         </div>
+        <p id="syncSavedMessage" class="status" role="status" aria-live="polite" hidden></p>
     </section>
 </main>
 <script src="{{ rtrim(request()->getBaseUrl(), '/') }}/js/offline-child-cache.js"></script>
@@ -114,6 +116,7 @@
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const serviceWorkerUrl = @json(rtrim(request()->getBaseUrl(), '/') . '/service-worker.js');
     const serviceWorkerScope = @json(rtrim(request()->getBaseUrl(), '/') . '/');
+    let offlineShellReady = false;
     const dbName = 'kfhi-offline-child-records';
     let db;
     let currentPage = 1;
@@ -143,9 +146,17 @@
         el.style.color = error ? '#9b1c1c' : '#24352a';
     };
 
+    function updateSavedMessage(message, error = false) {
+        const el = document.getElementById('syncSavedMessage');
+        el.hidden = false;
+        el.textContent = message;
+        el.style.background = error ? '#fdecec' : '#f1f6f2';
+        el.style.color = error ? '#9b1c1c' : '#24352a';
+    }
+
     function openDb() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(dbName, 1);
+            const request = indexedDB.open(dbName, 2);
             request.onupgradeneeded = () => {
                 const database = request.result;
                 if (!database.objectStoreNames.contains('children')) {
@@ -172,7 +183,12 @@
                     const old = request.result || {};
                     const allowedIds = new Set(old.allowed_enumerator_ids || []);
                     enumeratorIds.forEach(id => allowedIds.add(Number(id)));
-                    const merged = { ...old, ...record, allowed_enumerator_ids: [...allowedIds] };
+                    const merged = {
+                        ...old,
+                        ...record,
+                        allowed_enumerator_ids: [...allowedIds],
+                        staff_downloaded: true,
+                    };
                     if (!Object.prototype.hasOwnProperty.call(record, 'guardians')) delete merged.guardians;
                     store.put(merged);
                 };
@@ -197,6 +213,41 @@
             const request = db.transaction('children').objectStore('children').count();
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
+        });
+    }
+
+    function savedRecords() {
+        return new Promise((resolve, reject) => {
+            const request = db.transaction('children').objectStore('children').getAll();
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    function removeMissingStaffRecords(candidateIds, foundIds) {
+        const candidates = new Set(candidateIds.map(Number));
+        const found = new Set(foundIds.map(Number));
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('children', 'readwrite');
+            const store = tx.objectStore('children');
+            const request = store.getAll();
+            request.onsuccess = () => {
+                request.result.forEach(record => {
+                    const id = Number(record.id);
+                    if (!candidates.has(id) || found.has(id)) return;
+                    const enumeratorIds = (record.allowed_enumerator_ids || []).map(Number);
+                    if (enumeratorIds.length) {
+                        const remaining = { ...record };
+                        delete remaining.staff_downloaded;
+                        store.put(remaining);
+                    } else {
+                        store.delete(record.id);
+                    }
+                });
+            };
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error || new Error('Could not remove children no longer available to this worker.'));
         });
     }
 
@@ -293,6 +344,47 @@
         } catch (error) { status(error.message, true); }
     }
 
+    async function updateSavedChildren() {
+        const button = document.getElementById('syncSaved');
+        button.disabled = true;
+        let updated = 0;
+        updateSavedMessage('Checking child records saved on this device…');
+        try {
+            const records = await savedRecords();
+            const candidates = records.filter(record =>
+                Number.isInteger(Number(record.id)) && Number(record.id) > 0
+                && (record.staff_downloaded === true || !(record.allowed_enumerator_ids || []).length)
+            );
+            if (!candidates.length) {
+                updateSavedMessage('No child records are saved on this device yet. Download children first.');
+                return;
+            }
+
+            const ids = candidates.map(record => Number(record.id));
+            const foundIds = [];
+            for (let start = 0; start < ids.length; start += 100) {
+                const batchIds = ids.slice(start, start + 100);
+                updateSavedMessage(`Updating saved children… ${Math.min(start, ids.length)} of ${ids.length} checked.`);
+                const result = await postBatch({
+                    all: false,
+                    child_ids: batchIds,
+                    include_family_details: document.getElementById('includeFamily').checked,
+                }, []);
+                foundIds.push(...result.data.map(record => Number(record.id)));
+                updated += result.count;
+            }
+
+            await removeMissingStaffRecords(ids, foundIds);
+            const finishedAt = new Date().toISOString();
+            await saveMetadata({ key: 'last_child_update', value: finishedAt, count: updated });
+            updateSavedMessage(`Finished. Updated ${updated} saved child record(s). Removed records no longer available to this worker.`);
+        } catch (error) {
+            updateSavedMessage(`Update stopped after ${updated} record(s): ${error.message} Reconnect and try again.`, true);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
     async function syncAll(filtersToUse, label) {
         const access = enumeratorAccessSelection();
         const count = filtersToUse.district || filtersToUse.gn_division || filtersToUse.search ? currentTotal : null;
@@ -335,6 +427,7 @@
         });
     });
     document.getElementById('syncSelected').addEventListener('click', syncSelected);
+    document.getElementById('syncSaved').addEventListener('click', updateSavedChildren);
     document.getElementById('syncFiltered').addEventListener('click', () => syncAll(filters(), 'the current filters'));
     document.getElementById('syncAll').addEventListener('click', () => syncAll({}, 'all active children'));
     document.getElementById('allowAllEnumerators').addEventListener('change', event => {
@@ -350,9 +443,14 @@
         status(`${count} child record(s) are saved on this device. Search online to add or update records.`);
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register(serviceWorkerUrl, { scope: serviceWorkerScope })
-                .catch(() => status('Child records are saved, but the offline card page could not be prepared. Check that this site uses HTTPS (or localhost).', true));
+                .then(() => navigator.serviceWorker.ready)
+                .then(() => {
+                    offlineShellReady = true;
+                })
+                .catch(() => status('Child records are saved, but offline pages could not be prepared. Check that this site uses HTTPS.', true));
         }
     }).catch(() => status('This browser cannot save offline records. Check storage settings or use a supported browser.', true));
+
 })();
 </script>
 </body>

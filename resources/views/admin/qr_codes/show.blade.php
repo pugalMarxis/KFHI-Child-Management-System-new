@@ -280,6 +280,13 @@
             background: #ffffff;
         }
 
+        .qr-image canvas,
+        .qr-image img {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
         .qr-label {
             margin-top: 1.2mm;
 
@@ -607,11 +614,7 @@
 
             <div class="qr-area">
 
-                <img
-                    src="{{ asset('storage/' . $qrCode->qr_image_path) }}"
-                    alt="Secure QR Code"
-                    class="qr-image"
-                >
+                <div id="child-qr" class="qr-image" role="img" aria-label="QR code for {{ $child->child_code }}"></div>
 
                 <div class="qr-label">
                     Scan for secure identification
@@ -663,21 +666,6 @@
         </button>
 
         <a
-            href="{{ route('admin.children.offline_qr.download', $child) }}"
-            class="btn btn-download"
-            title="Download self-contained QR code that works in areas without internet"
-        >
-            ⚡ Offline QR (SVG)
-        </a>
-
-        <a
-            href="{{ route('admin.offline_qr') }}"
-            class="btn btn-secondary"
-        >
-            Offline QR Studio
-        </a>
-
-        <a
             href="{{ route('children.show', $child) }}"
             class="btn btn-secondary"
         >
@@ -700,11 +688,6 @@
 
         QR code has not been generated for this child.
 
-        <div style="margin-top:15px;">
-            <a href="{{ route('admin.offline_qr') }}" class="btn btn-primary" style="display:inline-block;">
-                ⚡ Open Offline QR Generator
-            </a>
-        </div>
 
     </div>
 
@@ -713,10 +696,20 @@
 
 <!-- html2canvas (local offline bundle) -->
 <script src="{{ asset('js/html2canvas.min.js') }}"></script>
-<script src="{{ asset('js/qrcode.min.js') }}"></script>
+<script src="{{ asset('js/qrcode.min.js') }}?v=2"></script>
 
 
 <script>
+
+    const qrTarget = document.getElementById('child-qr');
+    if (qrTarget && typeof window.QRCode === 'function') {
+        new window.QRCode(qrTarget, {
+            text: @json($child->child_code),
+            width: 128,
+            height: 128,
+            correctLevel: window.QRCode.CorrectLevel.M,
+        });
+    }
 
     function printCard() {
 

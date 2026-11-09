@@ -148,6 +148,11 @@ class OfflineChildSyncController extends Controller
             ]);
         }]);
 
+        $query->with(['qrCodes' => function ($qrQuery) {
+            $qrQuery->where('qr_codes.status', 'active')
+                ->select(['qr_codes.child_id', 'qr_codes.token_hash']);
+        }]);
+
         $children = $query->get();
 
 
@@ -174,6 +179,7 @@ class OfflineChildSyncController extends Controller
         $records = $children->map(function (Child $child) use ($includeFamilyDetails) {
             $record = [
                 'id' => $child->id,
+                'qr_token_hashes' => $child->qrCodes->pluck('token_hash')->values(),
                 'child_code' => $child->child_code,
                 'first_name' => $child->first_name,
                 'middle_name' => $child->middle_name,
@@ -187,6 +193,7 @@ class OfflineChildSyncController extends Controller
                 'district' => $child->district,
                 'gn_division' => $child->gn_division,
                 'status' => $child->status,
+                'profile_version' => (int) $child->profile_version,
                 'profile_photo_url' => $child->profile_photo ? asset('storage/' . $child->profile_photo) : null,
                 'updated_at' => $child->updated_at?->toIso8601String(),
             ];
@@ -242,6 +249,10 @@ class OfflineChildSyncController extends Controller
                     'guardians.relationship', 'guardians.phone', 'guardians.is_primary',
                 ]);
             }])
+            ->with(['qrCodes' => function ($qrQuery) {
+                $qrQuery->where('qr_codes.status', 'active')
+                    ->select(['qr_codes.child_id', 'qr_codes.token_hash']);
+            }])
             ->orderBy('children.id')
             ->limit(100)
             ->get();
@@ -250,6 +261,7 @@ class OfflineChildSyncController extends Controller
             $record = [
                 'id' => $child->id,
                 'child_code' => $child->child_code,
+                'qr_token_hashes' => $child->qrCodes->pluck('token_hash')->values(),
                 'first_name' => $child->first_name,
                 'middle_name' => $child->middle_name,
                 'last_name' => $child->last_name,
@@ -262,6 +274,7 @@ class OfflineChildSyncController extends Controller
                 'district' => $child->district,
                 'gn_division' => $child->gn_division,
                 'status' => $child->status,
+                'profile_version' => (int) $child->profile_version,
                 'profile_photo_url' => $child->profile_photo ? asset('storage/' . $child->profile_photo) : null,
                 'updated_at' => $child->updated_at?->toIso8601String(),
                 'allowed_enumerator_ids' => [$enumerator->id],

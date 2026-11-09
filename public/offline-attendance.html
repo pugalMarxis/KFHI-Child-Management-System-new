@@ -21,6 +21,8 @@
         button, a.button { display: block; border: 0; background: #245b3b; color: white; text-align: center; text-decoration: none; cursor: pointer; }
         #reader { width: 100%; max-width: 460px; margin: 14px auto; }
         .small { font-size: .9rem; color: #53675a; }
+        #markedList { padding-left: 22px; }
+        #markedList li { padding: 7px 0; border-bottom: 1px solid #edf2ee; }
     </style>
 </head>
 <body>
@@ -29,6 +31,8 @@
     <p id="eventTitle">Loading event…</p>
     <div id="connectionStatus" class="status" role="status">Checking connection…</div>
     <p id="pendingCount" class="small">Checking saved attendance…</p>
+    <h2>Marked on this phone</h2>
+    <ul id="markedList" class="small"><li>Loading saved attendance…</li></ul>
 
     <div id="reader"></div>
     <button id="startCamera" type="button">Start QR scanner</button>

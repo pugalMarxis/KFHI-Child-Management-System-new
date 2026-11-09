@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#245b3b">
+    <base href="__APP_BASE__">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <title>Child Management | KFHI</title>
+    <style>
+        :root { font-family: Arial, sans-serif; background: #eef7f1; color: #183b2a; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 18px; }
+        main { width: min(900px, 100%); margin: 18px auto; }
+        section { background: white; margin-bottom: 16px; padding: 20px; border-radius: 14px; box-shadow: 0 5px 18px #183b2a12; }
+        h1, h2 { margin-top: 0; color: #245b3b; }
+        p { line-height: 1.5; }
+        .status { padding: 11px; border-radius: 8px; background: #edf2ee; }
+        .status.error { background: #fff0ed; color: #8d2b1d; }
+        .status.success { background: #e9f7ed; color: #245b3b; }
+        .layout { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 18px; }
+        .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        label { display: block; font-size: .9rem; font-weight: 700; }
+        input, select, textarea, button, a.button { width: 100%; min-height: 42px; margin-top: 5px; padding: 9px 11px; border: 1px solid #bdcfc1; border-radius: 8px; font-size: 1rem; }
+        textarea { min-height: 75px; resize: vertical; }
+        button, a.button { display: inline-flex; justify-content: center; align-items: center; border: 0; background: #287344; color: white; text-decoration: none; font-weight: 700; cursor: pointer; }
+        button.secondary, a.secondary { background: #e9f2eb; color: #245c3a; }
+        button:disabled { opacity: .55; cursor: wait; }
+        .wide { grid-column: 1 / -1; }
+        #savedChildren { padding-left: 20px; }
+        #savedChildren li { margin: 8px 0; }
+        #savedChildren button { text-align: left; justify-content: flex-start; }
+        #qrPreview { width: 128px; height: 128px; margin: auto; }
+        #qrPreview canvas, #qrPreview img { width: 100%; height: 100%; }
+        .small { color: #586d5e; font-size: .9rem; }
+        @media (max-width: 650px) { .layout { grid-template-columns: 1fr; } .fields { grid-template-columns: 1fr; } #qrPreview { margin: 0 auto; } }
+    </style>
+</head>
+<body>
+<main>
+    <section>
+        <h1>Child Management</h1>
+        <p>Add a child or edit a child saved on this phone. Changes wait here until the phone reconnects and syncs.</p>
+        <p class="small">This form saves basic child details. Add photos and guardian details while online.</p>
+        <p id="connectionStatus" class="status" role="status">Checking connection…</p>
+        <p id="pageMessage" class="status" role="status" aria-live="polite">Opening saved child records…</p>
+        <button id="newChild" type="button" class="secondary">Add a new child</button>
+        <button id="syncProfiles" type="button">Sync child changes</button>
+        <a class="button secondary" href="./admin/child-sync">Back to Child Sync (online)</a>
+    </section>
+
+    <section>
+        <h2>Children saved on this phone</h2>
+        <ul id="savedChildren"><li>Loading…</li></ul>
+    </section>
+
+    <section>
+        <h2 id="formTitle">Add a child</h2>
+        <div class="layout">
+            <form id="childForm" class="fields">
+                <label>Child code *<input name="child_code" maxlength="30" required autocomplete="off"></label>
+                <label>First name *<input name="first_name" maxlength="100" required></label>
+                <label>Middle name<input name="middle_name" maxlength="100"></label>
+                <label>Last name *<input name="last_name" maxlength="100" required></label>
+                <label>Date of birth *<input name="date_of_birth" type="date" required></label>
+                <label>Gender *<select name="gender" required><option value="">Choose</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label>
+                <label>School<input name="school_name" maxlength="255"></label>
+                <label>Grade<input name="grade" maxlength="30"></label>
+                <label>District<input name="district" maxlength="100"></label>
+                <label>GN Division<input name="gn_division" maxlength="150"></label>
+                <label>Status<select name="status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+                <label class="wide">Address<textarea name="address" maxlength="5000"></textarea></label>
+                <label class="wide">Notes<textarea name="notes" maxlength="5000"></textarea></label>
+                <button id="saveOnPhone" type="button" class="wide" disabled>Save on this phone</button>
+            </form>
+            <div>
+                <p class="small">Permanent QR preview. It contains only the child code.</p>
+                <div id="qrPreview" aria-label="Child QR preview"></div>
+            </div>
+        </div>
+    </section>
+</main>
+<script src="./js/qrcode.min.js"></script>
+<script src="./js/offline-child-cache.js"></script>
+<script src="./js/offline-child-form-shell.js"></script>
+</body>
+</html>

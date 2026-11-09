@@ -29,7 +29,9 @@ use App\Http\Controllers\Admin\ResponseManagementController;
 use App\Http\Controllers\Admin\ResponseExportController;
 use App\Http\Controllers\Admin\QuestionnaireExportController;
 use App\Http\Controllers\Admin\OfflineChildSyncController;
+use App\Http\Controllers\Admin\OfflineChildProfileSyncController;
 use App\Http\Controllers\Enumerator\EnumeratorDashboardController;
+use App\Http\Controllers\Enumerator\EnumeratorAttendanceController;
 use App\Http\Controllers\Enumerator\EnumeratorSurveyController;
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +76,9 @@ Route::middleware('auth')->group(function () {
         ->name('admin.child-sync.photo');
     Route::post('/admin/child-sync/download', [OfflineChildSyncController::class, 'download'])
         ->name('admin.child-sync.download');    
+    Route::post('/admin/child-sync/profile-sync', [OfflineChildProfileSyncController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('admin.child-sync.profile-sync');
     Route::post('/attendance/sync', [AttendanceSyncController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('attendance.sync');
@@ -108,6 +113,8 @@ Route::middleware('auth')->group(function () {
     */
 
     Route::resource('/admin/children', ChildController::class);
+    Route::post('/admin/children/bulk-delete', [ChildController::class, 'bulkDestroy'])
+        ->name('children.bulk-delete');
 
 
     /*
@@ -145,19 +152,9 @@ Route::middleware('auth')->group(function () {
     )->name('children.qr.show');
 
     Route::get(
-        '/admin/offline-qr',
-        [QRCodeController::class, 'offlineQr']
-    )->name('admin.offline_qr');
-
-    Route::get(
         '/admin/qr/scan',
         [ChildOfficerQRCodeController::class, 'scan']
     )->name('admin.qr.scan');
-
-    Route::get(
-        '/admin/children/{child}/offline-qr/download',
-        [QRCodeController::class, 'downloadOfflineSvg']
-    )->name('admin.children.offline_qr.download');
 
     /*
     |--------------------------------------------------------------------------
@@ -169,6 +166,11 @@ Route::middleware('auth')->group(function () {
         '/admin/events/{event}/attendance',
         [EventAttendanceController::class, 'index']
     )->name('events.attendance.index');
+
+    Route::get(
+        '/admin/events/{event}/attendance/export',
+        [EventAttendanceController::class, 'export']
+    )->name('events.attendance.export');
 
     Route::post(
         '/admin/events/{event}/attendance/scan',
@@ -250,6 +252,8 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/admin/responses/export', [ResponseExportController::class, 'export'])->name('admin.responses.export');
+    Route::get('/admin/responses/export-enumerators', [ResponseExportController::class, 'exportEnumerators'])->name('admin.responses.export-enumerators');
+    Route::post('/admin/responses/bulk-delete', [ResponseManagementController::class, 'bulkDestroy'])->name('admin.responses.bulk-delete');
     Route::get('/admin/responses', [ResponseManagementController::class, 'index'])->name('admin.responses.index');
     Route::get('/admin/responses/{response}', [ResponseManagementController::class, 'show'])->name('admin.responses.show');
     Route::post('/admin/responses/{response}/status', [ResponseManagementController::class, 'updateStatus'])->name('admin.responses.status');
@@ -269,6 +273,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/enumerators/common-password', [EnumeratorManagementController::class, 'updateCommonPassword'])->name('admin.enumerators.common_password');
     Route::put('/admin/enumerators/{enumerator}', [EnumeratorManagementController::class, 'update'])->name('admin.enumerators.update');
     Route::delete('/admin/enumerators/{enumerator}', [EnumeratorManagementController::class, 'destroy'])->name('admin.enumerators.destroy');
+    Route::post('/admin/enumerators/bulk-delete', [EnumeratorManagementController::class, 'bulkDestroy'])->name('admin.enumerators.bulk-delete');
 });
 
 
@@ -475,15 +480,15 @@ Route::get(
         [ChildOfficerQRCodeController::class, 'lookup']
     )->name('child_officer.qr.lookup');
 
-    Route::get(
-        '/child-officer/offline-qr',
-        [ChildOfficerQRCodeController::class, 'offlineQr']
-    )->name('child_officer.offline_qr');
-
     Route::delete(
         '/child-officer/children/{child}',
         [ChildOfficerChildController::class, 'destroy']
     )->name('child_officer.children.destroy');
+
+    Route::post(
+        '/child-officer/children/bulk-delete',
+        [ChildOfficerChildController::class, 'bulkDestroy']
+    )->name('child_officer.children.bulk-delete');
 
     Route::get(
         '/child-officer/guardians/{guardian}/edit',
@@ -543,6 +548,9 @@ Route::post('/enumerator/verify', [EnumeratorDashboardController::class, 'verify
 Route::post('/enumerator/qr/lookup', [EnumeratorDashboardController::class, 'lookupChild'])
     ->middleware('throttle:30,1')
     ->name('enumerator.qr.lookup');
+Route::post('/enumerator/events/{event}/attendance/sync', [EnumeratorAttendanceController::class, 'sync'])
+    ->middleware('throttle:30,1')
+    ->name('enumerator.attendance.sync');
 Route::post('/enumerator/child-sync/download', [OfflineChildSyncController::class, 'downloadAssignedForEnumerator'])
     ->middleware('throttle:20,1')
     ->name('enumerator.child-sync.download');

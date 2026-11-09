@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#245b3b">
+    <base href="__APP_BASE__">
+    <title>QR Scanner | KFHI CMS</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 18px; background: #eef7f1; color: #183b2a; font: 16px Arial, sans-serif; }
+        main { width: min(720px, 100%); margin: 20px auto; }
+        section { background: white; margin-bottom: 16px; padding: 20px; border-radius: 14px; box-shadow: 0 5px 18px #183b2a12; }
+        h1 { margin-top: 0; color: #245b3b; }
+        p { line-height: 1.5; }
+        #status { padding: 12px; border-radius: 8px; background: #edf2ee; }
+        #status.error { background: #fff0ed; color: #8d2b1d; }
+        #status.success { background: #e9f7ed; color: #245b3b; }
+        #reader { width: 100%; max-width: 500px; margin: 12px auto; }
+        button, input { min-height: 44px; padding: 10px 12px; border: 1px solid #bdcfc1; border-radius: 8px; font-size: 1rem; }
+        button { background: #287344; color: white; border: 0; font-weight: 700; cursor: pointer; }
+        button.secondary { background: #e9f2eb; color: #245c3a; }
+        button:disabled { opacity: .55; }
+        form { display: flex; gap: 8px; }
+        form input { flex: 1; min-width: 0; }
+        #child { display: none; }
+        dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; }
+        dt { font-weight: 700; }
+        dd { margin: 0; overflow-wrap: anywhere; }
+        @media (max-width: 520px) { form { flex-direction: column; } }
+    </style>
+</head>
+<body>
+<main>
+    <section>
+        <h1>Child QR Scanner</h1>
+        <p>This is the CMS scanner. It checks the server when online and saved authorized child records when offline.</p>
+        <p id="status" role="status" aria-live="polite">Preparing scanner…</p>
+        <div id="reader"></div>
+        <button id="startCamera" type="button">Start camera</button>
+        <button id="stopCamera" class="secondary" type="button" disabled>Stop camera</button>
+        <p>You can also type the permanent child code:</p>
+        <form id="codeForm">
+            <input id="childCodeInput" autocomplete="off" placeholder="Example: KFHI-CH-0001" required>
+            <button type="submit">Find child</button>
+        </form>
+    </section>
+    <section id="child" aria-live="polite">
+        <h2 id="childName"></h2>
+        <dl>
+            <dt>Child code</dt><dd id="childCode"></dd>
+            <dt>Gender</dt><dd id="childGender"></dd>
+            <dt>Date of birth</dt><dd id="childDob"></dd>
+            <dt>School</dt><dd id="childSchool"></dd>
+            <dt>Grade</dt><dd id="childGrade"></dd>
+            <dt>GN division</dt><dd id="childGn"></dd>
+            <dt>District</dt><dd id="childDistrict"></dd>
+            <dt>Status</dt><dd id="childState"></dd>
+        </dl>
+    </section>
+</main>
+<script src="./js/html5-qrcode.min.js"></script>
+<script src="./js/offline-child-cache.js"></script>
+<script src="./js/qr-scanner-shell.js"></script>
+</body>
+</html>

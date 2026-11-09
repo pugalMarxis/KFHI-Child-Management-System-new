@@ -6,8 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $questionnaire->title }} - Questionnaire | KFHI</title>
 
-    <!-- HTML5-QRCode Scanner Library for reliable camera scanning on all devices -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Use the locally bundled scanner library so this page does not depend on a CDN. -->
+    <script src="{{ asset('js/html5-qrcode.min.js') }}"></script>
 
     <style>
         * {
@@ -907,8 +907,11 @@
 
         try {
             html5QrScanner = new Html5Qrcode("qrReader");
+            const cameras = await Html5Qrcode.getCameras();
+            if (!cameras.length) throw new Error('No camera was found on this device.');
+            const camera = cameras.find(item => /back|rear|environment/i.test(item.label || '')) || cameras[0];
             await html5QrScanner.start(
-                { facingMode: "environment" },
+                camera.id,
                 {
                     fps: 10,
                     qrbox: { width: 250, height: 250 }

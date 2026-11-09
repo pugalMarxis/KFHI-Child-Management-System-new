@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\EventAttendanceExport;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Event;
@@ -9,12 +10,14 @@ use App\Models\QRCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class EventAttendanceController extends Controller
 {
     public function index(Event $event): View
     {
-        $attendances = Attendance::with('child')
+        $attendances = Attendance::with(['child', 'markedBy', 'markedByEnumerator'])
             ->where('event_id', $event->id)
             ->latest('attendance_time')
             ->get();
@@ -23,6 +26,25 @@ class EventAttendanceController extends Controller
             'admin.events.attendance.index',
             compact('event', 'attendances')
         );
+    }
+
+    public function export(Request $request, Event $event): BinaryFileResponse
+    {
+        $user = $request->user();
+        abort_unless(
+            $user && $user->isActive() && ($user->isAdmin() || $user->isChildOfficer()),
+            403
+        );
+
+        $attendances = Attendance::with(['child', 'markedBy', 'markedByEnumerator'])
+            ->where('event_id', $event->id)
+            ->orderBy('attendance_time')
+            ->get();
+
+        $safeCode = preg_replace('/[^A-Za-z0-9_-]/', '_', $event->event_code ?: (string) $event->id);
+        $filename = 'attendance_' . $safeCode . '_' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new EventAttendanceExport($attendances), $filename);
     }
 
     public function scan(
@@ -40,14 +62,15 @@ class EventAttendanceController extends Controller
             ->where('status', 'active')
             ->first();
 
-        if (!$qrCode || !$qrCode->child) {
+        // New permanent-code QR cards work directly with this online endpoint too.
+        $child = $qrCode?->child ?? \App\Models\Child::where('child_code', $request->token)->first();
+
+        if (!$child) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or inactive QR code.',
             ], 404);
         }
-
-        $child = $qrCode->child;
 
         if ($child->status !== 'active') {
             return response()->json([
@@ -84,9 +107,7 @@ class EventAttendanceController extends Controller
             'status' => 'present',
         ]);
 
-        $qrCode->update([
-            'last_scanned_at' => now(),
-        ]);
+        $qrCode?->update(['last_scanned_at' => now()]);
 
         return response()->json([
             'success' => true,

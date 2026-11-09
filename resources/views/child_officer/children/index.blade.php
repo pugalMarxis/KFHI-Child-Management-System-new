@@ -335,6 +335,7 @@
     font-size: 14px;
     font-weight: 600;
 }
+.bulk-delete-button:disabled { opacity: .55; cursor: not-allowed; }
     </style>
 </head>
 
@@ -368,6 +369,11 @@
     {{ session('success') }}
 </div>
 
+@endif
+@if($errors->any())
+<div role="alert" style="margin-top:20px;padding:13px 16px;border-radius:10px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-size:14px;font-weight:600;">
+    {{ $errors->first() }}
+</div>
 @endif
 
         <section class="page-heading">
@@ -500,9 +506,15 @@
                     Children
                 </h3>
 
-                <span class="child-count">
-                    {{ $children->count() }} children found
-                </span>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <span class="child-count">{{ $children->count() }} children found</span>
+                    @if($children->count())
+                        <span>Selected: <strong id="selectedChildrenCount">0</strong></span>
+                        <button type="button" class="btn bulk-delete-button" id="deleteSelectedChildren" disabled style="background:#b42318;color:white;">
+                            Delete selected
+                        </button>
+                    @endif
+                </div>
 
             </div>
 
@@ -516,6 +528,7 @@
                         <thead>
 
                             <tr>
+                                <th><input type="checkbox" id="selectAllChildren" aria-label="Select all children shown"></th>
                                 <th>Photo</th>
                                 <th>Child Code</th>
                                 <th>Name</th>
@@ -533,6 +546,8 @@
                             @foreach($children as $child)
 
                                 <tr>
+
+                                    <td><input type="checkbox" class="child-row-select" value="{{ $child->id }}" aria-label="Select {{ $child->child_code }}"></td>
 
                                     <td>
 
@@ -613,23 +628,6 @@
     View
 </a>
 
-<form
-    action="{{ route('child_officer.children.destroy', $child) }}"
-    method="POST"
-    style="display:inline;"
-    onsubmit="return confirm('Are you sure you want to delete this child information?');"
->
-    @csrf
-    @method('DELETE')
-
-    <button
-        type="submit"
-        class="delete-btn"
-    >
-        Delete
-    </button>
-</form>
-
 </td>
 
                                 </tr>
@@ -665,5 +663,42 @@
 
 </div>
 
+<form id="bulkDeleteChildrenForm" method="POST" action="{{ route('child_officer.children.bulk-delete') }}" hidden>
+    @csrf
+    <div id="selectedChildIds"></div>
+</form>
+
+<script>
+(() => {
+    const selectAll = document.getElementById('selectAllChildren');
+    const checkboxes = [...document.querySelectorAll('.child-row-select')];
+    const deleteButton = document.getElementById('deleteSelectedChildren');
+    if (!selectAll || !deleteButton) return;
+
+    const update = () => {
+        const selected = checkboxes.filter(item => item.checked);
+        document.getElementById('selectedChildrenCount').textContent = String(selected.length);
+        deleteButton.disabled = selected.length === 0;
+        selectAll.checked = checkboxes.length > 0 && selected.length === checkboxes.length;
+        selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
+    };
+    selectAll.addEventListener('change', () => {
+        checkboxes.forEach(item => { item.checked = selectAll.checked; });
+        update();
+    });
+    checkboxes.forEach(item => item.addEventListener('change', update));
+    deleteButton.addEventListener('click', () => {
+        const ids = checkboxes.filter(item => item.checked).map(item => item.value);
+        if (!ids.length || !confirm(`Delete ${ids.length} selected child record(s)? Their QR codes will be deactivated. This cannot be undone.`)) return;
+        const container = document.getElementById('selectedChildIds');
+        container.replaceChildren(...ids.map(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'child_ids[]'; input.value = id;
+            return input;
+        }));
+        document.getElementById('bulkDeleteChildrenForm').submit();
+    });
+})();
+</script>
 </body>
 </html>

@@ -202,13 +202,10 @@
     <a class="admin-nav-link {{ request()->routeIs('children.*') ? 'active' : '' }}" href="{{ route('children.index') }}">Child Management</a>
     <a class="admin-nav-link {{ request()->routeIs('guardians.*') ? 'active' : '' }}" href="{{ route('guardians.index') }}">Guardians</a>
 
-    <details {{ request()->routeIs('admin.qr.scan', 'admin.offline_qr') ? 'open' : '' }}>
-        <summary class="admin-identification-toggle {{ request()->routeIs('admin.qr.scan', 'admin.offline_qr') ? 'active' : '' }}">Identification</summary>
+    <details {{ request()->routeIs('admin.qr.scan') ? 'open' : '' }}>
+        <summary class="admin-identification-toggle {{ request()->routeIs('admin.qr.scan') ? 'active' : '' }}">Identification</summary>
         <div class="admin-identification-links">
             <a class="admin-nav-link {{ request()->routeIs('admin.qr.scan') ? 'active' : '' }}" href="{{ route('admin.qr.scan') }}">Online QR Scanner</a>
-            <a class="admin-nav-link {{ request()->routeIs('admin.offline_qr') && request('tool', 'generator') === 'generator' ? 'active' : '' }}" href="{{ route('admin.offline_qr', ['tool' => 'generator']) }}">Offline QR Generator</a>
-            <a class="admin-nav-link {{ request()->routeIs('admin.offline_qr') && request('tool') === 'scanner' ? 'active' : '' }}" href="{{ route('admin.offline_qr', ['tool' => 'scanner']) }}">Offline QR Scanner</a>
-            <a class="admin-nav-link {{ request()->routeIs('admin.offline_qr') && request('tool') === 'log' ? 'active' : '' }}" href="{{ route('admin.offline_qr', ['tool' => 'log']) }}">Field Scan Log</a>
         </div>
     </details>
 

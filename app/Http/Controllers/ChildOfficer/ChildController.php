@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ChildOfficer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Child;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class ChildController extends Controller
@@ -143,7 +144,8 @@ class ChildController extends Controller
         | Create Child
         |--------------------------------------------------------------------------
         */
-        Child::create($validated);
+        $child = Child::create($validated);
+        app(\App\Services\QRCodeService::class)->generateForChild($child);
 
         return redirect()
             ->route('child_officer.children.index')
@@ -164,7 +166,6 @@ class ChildController extends Controller
     public function update(Request $request, Child $child)
     {
         $validated = $request->validate([
-            'child_code' => 'required|string|max:100|unique:children,child_code,' . $child->id,
             'first_name' => 'required|string|max:100',
             'middle_name' => 'nullable|string|max:100',
             'last_name' => 'required|string|max:100',
@@ -199,6 +200,7 @@ class ChildController extends Controller
             $validated['custom_fields'] = $customFields;
         }
 
+        $child->profile_version = ((int) $child->profile_version) + 1;
         $child->update($validated);
 
         return redirect()
@@ -221,5 +223,37 @@ class ChildController extends Controller
         return redirect()
             ->route('child_officer.children.index')
             ->with('success', 'Child information deleted successfully.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        abort_unless($request->user()?->role === 'child_officer', 403);
+
+        $validated = $request->validate([
+            'child_ids' => ['required', 'array', 'min:1', 'max:500'],
+            'child_ids.*' => ['required', 'integer', 'distinct', 'exists:children,id'],
+        ]);
+
+        $deleted = DB::transaction(function () use ($validated) {
+            $children = Child::query()->whereIn('id', $validated['child_ids'])->lockForUpdate()->get();
+            if ($children->count() !== count($validated['child_ids'])) {
+                return null;
+            }
+
+            foreach ($children as $child) {
+                if ($child->qrCode) {
+                    $child->qrCode->update(['status' => 'inactive']);
+                }
+                $child->delete();
+            }
+
+            return $children->count();
+        });
+
+        if ($deleted === null) {
+            return back()->withErrors(['bulk_delete' => 'No children were deleted. Refresh the page and try again.']);
+        }
+
+        return back()->with('success', "Deleted {$deleted} selected child record(s).");
     }
 }

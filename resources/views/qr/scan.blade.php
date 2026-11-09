@@ -290,8 +290,6 @@
             <a class="sidebar-link" href="{{ route('guardians.index') }}">Guardians</a>
             <div class="sidebar-label">Identification</div>
             <a class="sidebar-link" href="{{ route('admin.qr.scan') }}">Online QR Scanner</a>
-            <a class="sidebar-link" href="{{ route('admin.offline_qr', ['tool' => 'generator']) }}">Offline QR Generator</a>
-            <a class="sidebar-link" href="{{ route('admin.offline_qr', ['tool' => 'scanner']) }}">Offline QR Scanner</a>
         @else
             <div class="sidebar-label">Main Menu</div>
             <a class="sidebar-link" href="{{ route('child_officer.dashboard') }}">Dashboard</a>

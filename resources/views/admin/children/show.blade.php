@@ -298,24 +298,6 @@
 
 @endif
 
-<a
-    href="{{ route('admin.offline_qr') }}"
-    style="
-        display:inline-flex;
-        align-items:center;
-        gap:8px;
-        padding:10px 16px;
-        background:#ffffff;
-        color:#2e7d4f;
-        border:1px solid #cde4d4;
-        border-radius:9px;
-        text-decoration:none;
-        font-weight:600;
-        font-size:13px;
-    "
->
-    ⚡ Offline QR Studio
-</a>
         </div>
 
     </div>

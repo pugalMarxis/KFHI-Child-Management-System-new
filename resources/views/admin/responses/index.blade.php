@@ -116,6 +116,15 @@
 
         .filter-input:focus { border-color: #2e7d32; }
 
+        .filter-date-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            color: #52685a;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
         .skip-link {
             position: absolute;
             left: -9999px;
@@ -162,6 +171,8 @@
 
         .btn-primary { background: #2e7d32; color: #ffffff; }
         .btn-secondary { background: #e8f3eb; color: #2e7d32; }
+        .btn-danger { background: #b42318; color: #ffffff; }
+        .btn:disabled { opacity: .55; cursor: not-allowed; }
 
         .table-responsive {
             overflow-x: auto;
@@ -235,6 +246,11 @@
     @if(session('success'))
         <div class="alert-success">{{ session('success') }}</div>
     @endif
+    @if($errors->any())
+        <div class="alert-success" role="alert" style="background:#fee2e2;color:#991b1b;">
+            {{ $errors->first() }}
+        </div>
+    @endif
 
     {{-- SUMMARY STATS --}}
     <div class="stats-grid">
@@ -305,8 +321,18 @@
                 <option value="merged" @selected(request('merge_status') === 'merged')>Merged</option>
             </select>
 
+            <label class="filter-date-group">
+                From date
+                <input type="date" name="start_date" class="filter-input" value="{{ request('start_date') }}" aria-label="Filter submissions from date">
+            </label>
+
+            <label class="filter-date-group">
+                To date
+                <input type="date" name="end_date" class="filter-input" value="{{ request('end_date') }}" aria-label="Filter submissions to date">
+            </label>
+
             <button type="submit" class="btn btn-secondary" aria-label="Apply response filters">Filter</button>
-            @if(request()->hasAny(['search', 'questionnaire_id', 'event_id', 'enumerator_id', 'review_status', 'merge_status']))
+            @if(request()->hasAny(['search', 'questionnaire_id', 'event_id', 'enumerator_id', 'review_status', 'merge_status', 'start_date', 'end_date']))
                 <a href="{{ url()->current() }}" class="btn btn-secondary" aria-label="Clear response filters">Clear</a>
             @endif
 
@@ -319,13 +345,29 @@
                 <a href="{{ route('admin.responses.export', array_merge(request()->query(), ['export_type' => 'child'])) }}" class="btn btn-secondary" aria-label="Export only child details for the current filtered response list">
                     Export child data only
                 </a>
+                <button type="button" id="exportSelectedResponses" class="btn btn-secondary" disabled>
+                    Export selected (<span id="selectedResponseCount">0</span>)
+                </button>
+                <button type="button" id="deleteSelectedResponses" class="btn btn-danger" disabled>
+                    Delete selected (<span id="deleteResponseCount">0</span>)
+                </button>
             </div>
         </form>
+
+        <form id="bulkDeleteResponsesForm" method="POST" action="{{ route('admin.responses.bulk-delete') }}" hidden>
+            @csrf
+            <div id="bulkDeleteResponseIds"></div>
+        </form>
+
+        <p style="margin:0 0 10px; color:#627467; font-size:12px;">
+            Tick rows one at a time, or use the checkbox at the top of the table to select every response on this page.
+        </p>
 
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="selectAllVisibleResponses" aria-label="Select all responses shown on this page"></th>
                         <th>ID</th>
                         <th>Questionnaire</th>
                         <th>Event</th>
@@ -340,6 +382,7 @@
                 <tbody>
                     @forelse($responses as $resp)
                         <tr>
+                            <td><input type="checkbox" class="response-row-select" value="{{ $resp->id }}" aria-label="Select response {{ $resp->id }}"></td>
                             <td>#{{ $resp->id }}</td>
                             <td>
                                 <strong>{{ $resp->questionnaire?->title ?? 'N/A' }}</strong>
@@ -379,23 +422,11 @@
                                     🔍 Review & Merge
                                 </a>
 
-                                <form method="POST"
-                                    action="{{ auth()->user()->role === 'child_officer'
-                                        ? route('child_officer.responses.destroy', $resp)
-                                        : route('admin.responses.destroy', $resp) }}"
-                                    style="display: inline;"
-                                    onsubmit="return confirm('Permanently delete response #{{ $resp->id }} and all its answers? This cannot be undone.');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">
-                                        Delete
-                                    </button>
-                                </form>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 35px; color: #728477;">
+                            <td colspan="10" style="text-align: center; padding: 35px; color: #728477;">
                                 No responses match the selected filters.
                             </td>
                         </tr>
@@ -413,12 +444,30 @@
     <div class="panel">
         <div class="panel-header">
             <h2>📊 Enumerator Activity & Productivity Monitoring</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" id="exportSelectedEnumerators" class="btn btn-secondary" disabled>
+                    Export selected (<span id="selectedEnumeratorCount">0</span>)
+                </button>
+                <button type="button" id="deleteSelectedEnumerators" class="btn btn-danger" disabled>
+                    Delete selected (<span id="deleteEnumeratorCount">0</span>)
+                </button>
+            </div>
         </div>
+
+        <form id="bulkDeleteEnumeratorsForm" method="POST" action="{{ route('admin.enumerators.bulk-delete') }}" hidden>
+            @csrf
+            <div id="bulkDeleteEnumeratorIds"></div>
+        </form>
+
+        <p style="margin:0 0 10px; color:#627467; font-size:12px;">
+            Tick individual enumerators, or use the table’s top checkbox to select everyone shown.
+        </p>
 
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="selectAllVisibleEnumerators" aria-label="Select all enumerators shown in this table"></th>
                         <th>Enumerator ID</th>
                         <th>Enumerator Name</th>
                         <th>Assigned Forms</th>
@@ -434,6 +483,7 @@
                 <tbody>
                     @forelse($enumeratorStats as $es)
                         <tr>
+                            <td><input type="checkbox" class="enumerator-row-select" value="{{ $es->id }}" aria-label="Select enumerator {{ $es->name }}"></td>
                             <td><strong>{{ $es->enumerator_code }}</strong></td>
                             <td>{{ $es->name }}</td>
                             <td>{{ $es->questionnaires_count ?? $es->questionnaires->count() }}</td>
@@ -448,21 +498,10 @@
                                     Edit / Assign
                                 </button>
                             </td>
-                            <td>
-                                <form method="POST"
-                                    action="{{ auth()->user()->role === 'child_officer'
-                                        ? route('child_officer.enumerators.destroy', $es)
-                                        : route('admin.enumerators.destroy', $es) }}"
-                                    onsubmit="return confirm('Permanently delete {{ addslashes($es->name) }}? Their submitted responses will remain, but this enumerator record will be removed.');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger">Delete</button>
-                                </form>
-                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" style="text-align: center; padding: 25px; color: #728477;">
+                            <td colspan="11" style="text-align: center; padding: 25px; color: #728477;">
                                 No enumerators currently registered.
                             </td>
                         </tr>
@@ -473,6 +512,112 @@
     </div>
 
 </main>
+
+<script>
+(() => {
+    const selectAll = document.getElementById('selectAllVisibleResponses');
+    const rowCheckboxes = [...document.querySelectorAll('.response-row-select')];
+    const exportButton = document.getElementById('exportSelectedResponses');
+    const deleteButton = document.getElementById('deleteSelectedResponses');
+    const selectedCount = document.getElementById('selectedResponseCount');
+    const deleteCount = document.getElementById('deleteResponseCount');
+    const exportUrl = @json(route('admin.responses.export'));
+
+    function updateSelection() {
+        const selected = rowCheckboxes.filter(checkbox => checkbox.checked);
+        selectedCount.textContent = String(selected.length);
+        exportButton.disabled = selected.length === 0;
+        deleteButton.disabled = selected.length === 0;
+        deleteCount.textContent = String(selected.length);
+        selectAll.checked = rowCheckboxes.length > 0 && selected.length === rowCheckboxes.length;
+        selectAll.indeterminate = selected.length > 0 && selected.length < rowCheckboxes.length;
+    }
+
+    selectAll.addEventListener('change', () => {
+        rowCheckboxes.forEach(checkbox => { checkbox.checked = selectAll.checked; });
+        updateSelection();
+    });
+    rowCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateSelection));
+
+    exportButton.addEventListener('click', () => {
+        const selectedIds = rowCheckboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
+        if (!selectedIds.length) return;
+
+        const url = new URL(exportUrl, window.location.href);
+        new URLSearchParams(window.location.search).forEach((value, key) => {
+            if (key !== 'page' && key !== 'response_ids[]' && key !== 'export_type') {
+                url.searchParams.set(key, value);
+            }
+        });
+        url.searchParams.set('export_type', 'full');
+        selectedIds.forEach(id => url.searchParams.append('response_ids[]', id));
+        window.location.assign(url.href);
+    });
+
+    deleteButton.addEventListener('click', () => {
+        const selectedIds = rowCheckboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
+        if (!selectedIds.length) return;
+        if (!confirm(`Permanently delete ${selectedIds.length} selected response(s) and their answers? This cannot be undone. A merged response will block the whole deletion.`)) return;
+
+        const container = document.getElementById('bulkDeleteResponseIds');
+        container.replaceChildren(...selectedIds.map(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'response_ids[]';
+            input.value = id;
+            return input;
+        }));
+        document.getElementById('bulkDeleteResponsesForm').submit();
+    });
+
+    const selectAllEnumerators = document.getElementById('selectAllVisibleEnumerators');
+    const enumeratorCheckboxes = [...document.querySelectorAll('.enumerator-row-select')];
+    const exportEnumeratorsButton = document.getElementById('exportSelectedEnumerators');
+    const deleteEnumeratorsButton = document.getElementById('deleteSelectedEnumerators');
+    const selectedEnumeratorCount = document.getElementById('selectedEnumeratorCount');
+    const deleteEnumeratorCount = document.getElementById('deleteEnumeratorCount');
+
+    function updateEnumeratorSelection() {
+        const selected = enumeratorCheckboxes.filter(checkbox => checkbox.checked);
+        selectedEnumeratorCount.textContent = String(selected.length);
+        exportEnumeratorsButton.disabled = selected.length === 0;
+        deleteEnumeratorsButton.disabled = selected.length === 0;
+        deleteEnumeratorCount.textContent = String(selected.length);
+        selectAllEnumerators.checked = enumeratorCheckboxes.length > 0 && selected.length === enumeratorCheckboxes.length;
+        selectAllEnumerators.indeterminate = selected.length > 0 && selected.length < enumeratorCheckboxes.length;
+    }
+
+    selectAllEnumerators.addEventListener('change', () => {
+        enumeratorCheckboxes.forEach(checkbox => { checkbox.checked = selectAllEnumerators.checked; });
+        updateEnumeratorSelection();
+    });
+    enumeratorCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateEnumeratorSelection));
+    exportEnumeratorsButton.addEventListener('click', () => {
+        const selectedIds = enumeratorCheckboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
+        if (!selectedIds.length) return;
+
+        const url = new URL(@json(route('admin.responses.export-enumerators')), window.location.href);
+        selectedIds.forEach(id => url.searchParams.append('enumerator_ids[]', id));
+        window.location.assign(url.href);
+    });
+
+    deleteEnumeratorsButton.addEventListener('click', () => {
+        const selectedIds = enumeratorCheckboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
+        if (!selectedIds.length) return;
+        if (!confirm(`Permanently delete ${selectedIds.length} selected enumerator record(s)? Their submitted responses will be kept. The shared password record is protected.`)) return;
+
+        const container = document.getElementById('bulkDeleteEnumeratorIds');
+        container.replaceChildren(...selectedIds.map(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'enumerator_ids[]';
+            input.value = id;
+            return input;
+        }));
+        document.getElementById('bulkDeleteEnumeratorsForm').submit();
+    });
+})();
+</script>
 
 </body>
 </html>

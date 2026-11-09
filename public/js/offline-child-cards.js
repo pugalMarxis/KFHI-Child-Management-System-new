@@ -7,10 +7,20 @@
 
     function openDatabase() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, 1);
+            const request = indexedDB.open(DB_NAME, 2);
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
-            request.onupgradeneeded = () => reject(new Error('Open the sync page once while online to prepare offline storage.'));
+            request.onupgradeneeded = () => {
+                const database = request.result;
+                if (!database.objectStoreNames.contains('children')) {
+                    const store = database.createObjectStore('children', { keyPath: 'id' });
+                    store.createIndex('child_code', 'child_code', { unique: true });
+                    store.createIndex('gn_division', 'gn_division');
+                }
+                if (!database.objectStoreNames.contains('metadata')) {
+                    database.createObjectStore('metadata', { keyPath: 'key' });
+                }
+            };
         });
     }
 

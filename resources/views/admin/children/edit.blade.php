@@ -263,18 +263,15 @@
                 <div class="form-group">
 
                     <label>
-                        Child Code <span class="required">*</span>
+                        Permanent Child Code
                     </label>
 
                     <input
                         type="text"
-                        name="child_code"
-                        value="{{ old('child_code', $child->child_code) }}"
+                        value="{{ $child->child_code }}"
+                        readonly
                     >
-
-                    @error('child_code')
-                        <div class="error">{{ $message }}</div>
-                    @enderror
+                    <small>This code stays the same when you update the child’s details.</small>
 
                 </div>
 

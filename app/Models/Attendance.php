@@ -14,6 +14,7 @@ class Attendance extends Model
         'child_id',
         'event_id',
         'marked_by',
+        'marked_by_enumerator_id',
         'attendance_time',
         'method',
         'status',
@@ -47,5 +48,10 @@ class Attendance extends Model
     public function markedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'marked_by');
+    }
+
+    public function markedByEnumerator(): BelongsTo
+    {
+        return $this->belongsTo(Enumerator::class, 'marked_by_enumerator_id');
     }
 }

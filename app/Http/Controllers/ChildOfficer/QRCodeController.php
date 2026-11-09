@@ -6,18 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Child;
 use App\Models\QRCode;
 use Illuminate\Http\Request;
-use Illuminate\Http\RedirectResponse;
 
 class QRCodeController extends Controller
 {
     public function scan()
     {
         return view('child_officer.qr.scan');
-    }
-
-    public function offlineQr(): RedirectResponse
-    {
-        return redirect()->route('child_officer.qr.scan');
     }
 
     public function lookup(Request $request)

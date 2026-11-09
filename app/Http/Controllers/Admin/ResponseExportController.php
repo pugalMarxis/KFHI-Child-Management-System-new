@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Exports\FilteredResponseExport;
+use App\Exports\EnumeratorActivityExport;
 use App\Http\Controllers\Controller;
+use App\Models\Enumerator;
 use App\Models\QuestionnaireResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -11,10 +13,51 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ResponseExportController extends Controller
 {
+    public function exportEnumerators(Request $request): BinaryFileResponse
+    {
+        $role = $request->user()?->role;
+        abort_unless(in_array($role, ['admin', 'child_officer'], true), 403);
+
+        $validated = $request->validate([
+            'enumerator_ids' => ['required', 'array', 'min:1', 'max:500'],
+            'enumerator_ids.*' => ['required', 'integer', 'distinct', 'exists:enumerators,id'],
+        ]);
+
+        $enumerators = Enumerator::query()
+            ->whereIn('id', $validated['enumerator_ids'])
+            ->withCount('questionnaires')
+            ->withCount([
+                'responses as total_submissions',
+                'responses as today_submissions' => fn ($query) => $query->whereDate('submitted_at', today()),
+                'responses as pending_submissions' => fn ($query) => $query->whereIn('review_status', ['submitted', 'under_review']),
+                'responses as approved_submissions' => fn ($query) => $query->where('review_status', 'approved'),
+            ])
+            ->withMin('responses as first_activity', 'submitted_at')
+            ->withMax('responses as latest_activity', 'submitted_at')
+            ->orderBy('name')
+            ->get();
+
+        return Excel::download(
+            new EnumeratorActivityExport($enumerators),
+            'selected_enumerator_activity_' . now()->format('Ymd_His') . '.xlsx'
+        );
+    }
+
     public function export(Request $request): BinaryFileResponse
     {
         $role = $request->user()?->role;
         abort_unless(in_array($role, ['admin', 'child_officer'], true), 403);
+
+        $dateRules = [
+            'start_date' => ['nullable', 'date_format:Y-m-d'],
+            'end_date' => ['nullable', 'date_format:Y-m-d'],
+            'response_ids' => ['sometimes', 'array', 'min:1', 'max:500'],
+            'response_ids.*' => ['required', 'integer', 'distinct', 'exists:questionnaire_responses,id'],
+        ];
+        if ($request->filled('start_date')) {
+            $dateRules['end_date'][] = 'after_or_equal:start_date';
+        }
+        $request->validate($dateRules);
 
         $exportType = $request->input('export_type', 'full');
         abort_unless(in_array($exportType, ['full', 'child'], true), 400);
@@ -24,6 +67,10 @@ class ResponseExportController extends Controller
             'child',
             'enumerator',
         ]);
+
+        if ($request->filled('response_ids')) {
+            $query->whereIn('id', $request->input('response_ids'));
+        }
 
         if ($request->filled('questionnaire_id')) {
             $query->where('questionnaire_id', $request->input('questionnaire_id'));

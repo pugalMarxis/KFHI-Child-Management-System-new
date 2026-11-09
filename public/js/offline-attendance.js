@@ -113,6 +113,21 @@
         }));
     }
 
+    function getForEvent(eventId) {
+        return openDatabase().then(db => new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const request = tx.objectStore(STORE_NAME).getAll();
+            request.onsuccess = () => resolve(request.result
+                .filter(item => item.event_id === Number(eventId))
+                .sort((a, b) => String(b.attended_at).localeCompare(String(a.attended_at))));
+            tx.oncomplete = () => db.close();
+            tx.onerror = () => {
+                db.close();
+                reject(tx.error);
+            };
+        }));
+    }
+
     function setStatus(eventUuid, status, message = '') {
         return openDatabase().then(db => new Promise((resolve, reject) => {
             const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -144,6 +159,7 @@
     window.KFHIOfflineAttendance = {
         save,
         getPending,
+        getForEvent,
         setStatus,
     };
 })();

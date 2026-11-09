@@ -146,9 +146,6 @@
             <summary class="identification-toggle">Identification</summary>
             <div class="identification-links">
                 <a class="nav-link" href="{{ route('admin.qr.scan') }}">Online QR Scanner</a>
-                <a class="nav-link" href="{{ route('admin.offline_qr', ['tool' => 'generator']) }}">Offline QR Generator</a>
-                <a class="nav-link" href="{{ route('admin.offline_qr', ['tool' => 'scanner']) }}">Offline QR Scanner</a>
-                <a class="nav-link" href="{{ route('admin.offline_qr', ['tool' => 'log']) }}">Field Scan Log</a>
             </div>
         </details>
 

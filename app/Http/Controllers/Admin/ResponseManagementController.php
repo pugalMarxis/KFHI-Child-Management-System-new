@@ -10,6 +10,7 @@ use App\Models\QuestionnaireResponse;
 use App\Services\ChildRecordMergeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ResponseManagementController extends Controller
@@ -17,6 +18,15 @@ class ResponseManagementController extends Controller
     public function index(Request $request): View
     {
         $this->authorizeReviewer($request);
+
+        $dateRules = [
+            'start_date' => ['nullable', 'date_format:Y-m-d'],
+            'end_date' => ['nullable', 'date_format:Y-m-d'],
+        ];
+        if ($request->filled('start_date')) {
+            $dateRules['end_date'][] = 'after_or_equal:start_date';
+        }
+        $request->validate($dateRules);
 
         $query = QuestionnaireResponse::with([
             'questionnaire.event',
@@ -223,6 +233,47 @@ class ResponseManagementController extends Controller
         return redirect()
             ->route($route)
             ->with('success', 'Response and its answers were permanently deleted.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $this->authorizeReviewer($request);
+        $validated = $request->validate([
+            'response_ids' => ['required', 'array', 'min:1', 'max:500'],
+            'response_ids.*' => ['required', 'integer', 'distinct', 'exists:questionnaire_responses,id'],
+        ]);
+
+        $responses = DB::transaction(function () use ($validated) {
+            $responses = QuestionnaireResponse::query()
+                ->whereIn('id', $validated['response_ids'])
+                ->lockForUpdate()
+                ->get();
+
+            if ($responses->count() !== count($validated['response_ids'])) {
+                return null;
+            }
+
+            if ($responses->contains(fn (QuestionnaireResponse $response) => $response->merge_status === 'merged')) {
+                return false;
+            }
+
+            $responses->each->delete();
+            return $responses->count();
+        });
+
+        if ($responses === false) {
+            return back()->withErrors([
+                'bulk_delete' => 'Nothing was deleted. A selected response has already been merged into a child record.',
+            ]);
+        }
+
+        if ($responses === null) {
+            return back()->withErrors([
+                'bulk_delete' => 'Nothing was deleted. One or more selected responses are no longer available. Refresh the page and try again.',
+            ]);
+        }
+
+        return back()->with('success', "Deleted {$responses} selected response(s) and their answers.");
     }
 
     private function authorizeReviewer(Request $request): void

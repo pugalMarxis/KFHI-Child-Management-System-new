@@ -447,14 +447,6 @@
             ← Back to Dashboard
         </a>
 
-        @if(auth()->user()->isAdmin())
-        <a
-            href="{{ route('admin.offline_qr', ['tool' => 'generator']) }}"
-            style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:#e8f5e9; color:#2e7d32; border-radius:9px; text-decoration:none; font-weight:600; font-size:13px; border:1px solid #cde3d1;"
-        >
-            ⚡ Open Offline QR (No Network Mode) →
-        </a>
-        @endif
     </div>
 
     <h1 class="page-title">
@@ -951,7 +943,7 @@
     |--------------------------------------------------------------------------
     */
 
-    function startScanner() {
+    async function startScanner() {
 
         if (scannerRunning) {
             return;
@@ -961,14 +953,13 @@
         resultCard.style.display = "none";
 
 
-        scanner =
-            new Html5Qrcode("reader");
-
-
-        scanner.start(
-            {
-                facingMode: "environment"
-            },
+        try {
+            const cameras = await Html5Qrcode.getCameras();
+            if (!cameras.length) throw new Error('No camera was found on this device.');
+            const camera = cameras.find(item => /back|rear|environment/i.test(item.label || '')) || cameras[0];
+            scanner = new Html5Qrcode("reader");
+            await scanner.start(
+            camera.id,
             {
                 fps: 10,
 
@@ -990,8 +981,7 @@
 
             }
 
-        )
-        .then(function() {
+            );
 
             scannerRunning = true;
 
@@ -999,18 +989,12 @@
                 "Scanner started. Point the camera at the QR code."
             );
 
-        })
-        .catch(function(error) {
-
+        } catch (error) {
             console.error(error);
-
             scannerRunning = false;
-
-            updateStatus(
-                "Unable to access the camera. Please allow camera permission."
-            );
-
-        });
+            scanner = null;
+            updateStatus(`Unable to start the camera: ${error?.message || error}. Allow camera access and use HTTPS or localhost.`);
+        }
 
     }
 

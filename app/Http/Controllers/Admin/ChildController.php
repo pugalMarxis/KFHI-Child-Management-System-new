@@ -7,6 +7,7 @@ use App\Models\Child;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ChildController extends Controller
@@ -135,10 +136,12 @@ class ChildController extends Controller
             'created_by' => auth()->id(),
             'profile_photo' => $profilePhotoPath,
         ]);
+
+        app(\App\Services\QRCodeService::class)->generateForChild($child);
     
         return redirect()
             ->route('children.show', $child)
-            ->with('success', 'Child registered successfully. Generate the secure QR code from this page.');
+            ->with('success', 'Child registered successfully. The permanent QR code is ready.');
     }
 
     public function show(Child $child): View
@@ -156,13 +159,6 @@ class ChildController extends Controller
     public function update(Request $request, Child $child): RedirectResponse
 {
     $validated = $request->validate([
-        'child_code' => [
-            'required',
-            'string',
-            'max:50',
-            'unique:children,child_code,' . $child->id,
-        ],
-
         'first_name' => [
             'required',
             'string',
@@ -237,7 +233,6 @@ class ChildController extends Controller
         ],
     ]);
 
-    $child->child_code = $validated['child_code'];
     $child->first_name = $validated['first_name'];
     $child->middle_name = $validated['middle_name'] ?? null;
     $child->last_name = $validated['last_name'];
@@ -250,6 +245,7 @@ class ChildController extends Controller
     $child->address = $validated['address'] ?? null;
     $child->notes = $validated['notes'] ?? null;
     $child->status = $validated['status'];
+    $child->profile_version = ((int) $child->profile_version) + 1;
 
     if ($request->hasFile('profile_photo')) {
 
@@ -276,5 +272,34 @@ class ChildController extends Controller
         return redirect()
             ->route('children.index')
             ->with('success', 'Child record permanently deleted.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'admin', 403);
+
+        $validated = $request->validate([
+            'child_ids' => ['required', 'array', 'min:1', 'max:500'],
+            'child_ids.*' => ['required', 'integer', 'distinct', 'exists:children,id'],
+        ]);
+
+        $deleted = DB::transaction(function () use ($validated) {
+            $children = Child::query()->whereIn('id', $validated['child_ids'])->lockForUpdate()->get();
+            if ($children->count() !== count($validated['child_ids'])) {
+                return null;
+            }
+
+            foreach ($children as $child) {
+                $child->forceDelete();
+            }
+
+            return $children->count();
+        });
+
+        if ($deleted === null) {
+            return back()->withErrors(['bulk_delete' => 'No children were deleted. Refresh the page and try again.']);
+        }
+
+        return back()->with('success', "Permanently deleted {$deleted} selected child record(s).");
     }
 }

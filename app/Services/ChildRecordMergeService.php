@@ -160,6 +160,7 @@ class ChildRecordMergeService
             }
 
             if (!empty($changesToApply)) {
+                $child->profile_version = ((int) $child->profile_version) + 1;
                 $child->update($changesToApply);
             }
 

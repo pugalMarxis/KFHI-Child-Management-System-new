@@ -377,6 +377,18 @@
 
         <div id="scanStatus" style="font-size: 13px; color: #65756a; margin-top: 4px;"></div>
 
+        @if($questionnaire->event && $questionnaire->event->enable_attendance)
+            <div style="margin-top:12px; padding:12px; background:#f0f8f2; border-radius:10px;">
+                <strong>Event attendance — {{ $questionnaire->event->title }}</strong>
+                <div id="enumeratorAttendanceStatus" role="status" aria-live="polite" style="margin-top:6px;">When a child is identified, attendance is saved for this event.</div>
+                <button type="button" id="syncEnumeratorAttendance" class="btn btn-secondary" style="margin-top:8px;">Sync attendance now</button>
+            </div>
+        @else
+            <div style="margin-top:12px; padding:12px; background:#fff8e7; border-radius:10px;">
+                Attendance is not enabled for this survey’s event.
+            </div>
+        @endif
+
         <div class="identified-box" id="identifiedBox">
             <strong style="color: #15803d; font-size: 14px;">✅ Child Identified Successfully:</strong>
             <div class="identified-grid">
@@ -609,8 +621,8 @@
 
 </div>
 
-<script src="{{ rtrim(request()->getBaseUrl(), '/') }}/js/offline-child-cache.js"></script>
-<script src="{{ rtrim(request()->getBaseUrl(), '/') }}/js/html5-qrcode.min.js"></script>
+<script src="{{ asset('js/offline-child-cache.js') }}"></script>
+<script src="{{ asset('js/html5-qrcode.min.js') }}"></script>
 <script>
     const fieldMapping = @json($fieldMapping);
     const currentEnumeratorId = @json($enumerator->id);
@@ -703,6 +715,10 @@
         document.getElementById('childSchoolDisplay').textContent = (child.school_name || 'N/A') + (child.grade ? ' (' + child.grade + ')' : '');
         document.getElementById('identifiedBox').classList.add('active');
 
+        if (window.KFHIEnumeratorAttendance) {
+            window.KFHIEnumeratorAttendance.mark(child);
+        }
+
         // Autofill questionnaire fields based on creator's mapping
         fieldMapping.forEach(mapping => {
             if (!mapping.autofill) return;
@@ -753,8 +769,11 @@
 
         try {
             qrScanner = new Html5Qrcode('qrReader');
+            const cameras = await Html5Qrcode.getCameras();
+            if (!cameras.length) throw new Error('No camera was found on this device.');
+            const camera = cameras.find(item => /back|rear|environment/i.test(item.label || '')) || cameras[0];
             await qrScanner.start(
-                { facingMode: 'environment' },
+                camera.id,
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 decodedText => processQrPayload(decodedText),
                 () => {}
@@ -766,7 +785,8 @@
         } catch (error) {
             scannerRunning = false;
             qrScanner = null;
-            setScanStatus('Unable to start the camera. Allow camera access and use HTTPS or localhost.', true);
+            const detail = error?.message || String(error || 'Unknown camera error.');
+            setScanStatus(`Unable to start the camera: ${detail}. Allow camera access and use HTTPS or localhost.`, true);
         }
     }
 
@@ -810,6 +830,18 @@
         if (qrScanner && scannerRunning) qrScanner.stop().catch(() => {});
     });
 </script>
+
+@if($questionnaire->event && $questionnaire->event->enable_attendance)
+    <script>
+        window.KFHIEnumeratorAttendanceConfig = {
+            questionnaireId: @json($questionnaire->id),
+            eventId: @json($questionnaire->event_id),
+            timezone: @json(config('attendance.timezone', 'Asia/Colombo')),
+            syncUrl: @json(route('enumerator.attendance.sync', $questionnaire->event)),
+        };
+    </script>
+    <script src="{{ asset('js/enumerator-attendance.js') }}"></script>
+@endif
 
 </body>
 </html>

@@ -13,6 +13,7 @@
     const message = document.getElementById('message');
     const connectionStatus = document.getElementById('connectionStatus');
     const pendingCount = document.getElementById('pendingCount');
+    const markedList = document.getElementById('markedList');
     const input = document.getElementById('childCode');
     const form = document.getElementById('attendanceForm');
     let scanner;
@@ -67,12 +68,68 @@
         return value;
     }
 
+    function legacyTokenFrom(value) {
+        try {
+            const url = new URL(String(value || '').trim(), window.location.origin);
+            const match = url.pathname.match(/\/qr\/scan\/([^/]+)$/);
+            return match ? decodeURIComponent(match[1]) : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    async function recordLegacyQrOnline(token) {
+        const tokenResponse = await fetch(new URL('attendance/sync/token', window.location.href), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        });
+        if (!tokenResponse.ok) {
+            show('error', 'Sign in again while online to record this QR code.');
+            return;
+        }
+        const tokenData = await tokenResponse.json();
+        const response = await fetch(
+            new URL(`admin/events/${eventId}/attendance/scan`, window.location.href),
+            {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': tokenData.csrf_token,
+                },
+                body: JSON.stringify({ token }),
+            }
+        );
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            show('error', data.message || 'Could not record attendance.');
+            return;
+        }
+        show('success', `${data.child.name}: ${data.message}`);
+    }
+
     async function refreshCount() {
         try {
             const pending = await window.KFHIOfflineAttendance.getPending();
-            pendingCount.textContent = `${pending.length} attendance item(s) waiting to sync.`;
+            const records = await window.KFHIOfflineAttendance.getForEvent(eventId);
+            pendingCount.textContent = `${pending.filter(item => item.event_id === eventId).length} attendance item(s) waiting to sync.`;
+            markedList.replaceChildren();
+            if (!records.length) {
+                const empty = document.createElement('li');
+                empty.textContent = 'No attendance marked for this event on this phone yet.';
+                markedList.append(empty);
+                return;
+            }
+            for (const record of records) {
+                const row = document.createElement('li');
+                const time = new Date(record.attended_at).toLocaleTimeString();
+                row.textContent = `${record.child_code} — ${record.attendance_date} ${time} — ${record.sync_status === 'synced' ? 'Synced' : record.sync_status === 'pending' ? 'Waiting to sync' : 'Needs review'}`;
+                markedList.append(row);
+            }
         } catch (error) {
             pendingCount.textContent = 'Phone storage is not available.';
+            markedList.textContent = 'Saved attendance list is unavailable.';
         }
     }
 
@@ -126,6 +183,13 @@
 
             show('success', 'Sync finished. Check any rejected items with your supervisor.');
             await refreshCount();
+            const eventRecords = await window.KFHIOfflineAttendance.getForEvent(eventId);
+            const allResolved = eventRecords.length > 0 && eventRecords.every(item => item.sync_status === 'synced');
+            if (allResolved) {
+                show('success', 'Attendance synced. Opening the online event attendance list…');
+                const attendanceUrl = new URL(`admin/events/${eventId}/attendance`, new URL('../', window.location.href));
+                setTimeout(() => { window.location.href = attendanceUrl.href; }, 1200);
+            }
         } catch (error) {
             show('error', error.message || 'Sync failed. Attendance remains saved on this phone.');
             await refreshCount();
@@ -138,10 +202,39 @@
             return;
         }
 
-        let childCode = String(rawValue || '').trim();
-        if (childCode.startsWith('{')) {
+        const scanned = String(rawValue || '').trim();
+        let child = null;
+
+        try {
+            child = await window.KFHIChildOfflineCache.findByScannedValue(scanned);
+        } catch (error) {
+            if (!navigator.onLine) {
+                show('error', 'Saved child records are unavailable on this phone.');
+                return;
+            }
+        }
+
+        if (!child && !navigator.onLine) {
+            show('error', 'This child QR was not saved on this phone. Connect and sync child records first.');
+            return;
+        }
+
+        if (!child) {
+            const legacyToken = legacyTokenFrom(scanned);
+            if (legacyToken) {
+                try {
+                    await recordLegacyQrOnline(legacyToken);
+                } catch (error) {
+                    show('error', 'Could not contact the attendance server.');
+                }
+                return;
+            }
+        }
+
+        let childCode = child?.child_code || scanned;
+        if (!child && scanned.startsWith('{')) {
             try {
-                childCode = JSON.parse(childCode).code || '';
+                childCode = JSON.parse(scanned).code || '';
             } catch (error) {
                 childCode = '';
             }
@@ -153,12 +246,6 @@
         }
 
         try {
-            const child = await window.KFHIChildOfflineCache.findByCode(childCode);
-            if (!navigator.onLine && !child) {
-                show('error', 'This child is not saved on this phone. Sync child records while online first.');
-                return;
-            }
-
             const saved = await window.KFHIOfflineAttendance.save(
                 eventId,
                 childCode,
@@ -194,8 +281,9 @@
             const cameras = await Html5Qrcode.getCameras();
             if (!cameras.length) throw new Error('No camera found.');
             scanner = new Html5Qrcode('reader');
+            const camera = cameras.find(item => /back|rear|environment/i.test(item.label || '')) || cameras[0];
             await scanner.start(
-                cameras[0].id,
+                camera.id,
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 value => {
                     if (scanBusy) return;
@@ -208,7 +296,7 @@
             );
             show('success', 'Camera is ready. Scan a child code QR.');
         } catch (error) {
-            show('error', 'Camera could not start. Allow camera access or enter the child code.');
+            show('error', `Camera could not start: ${error.message || error}. Allow camera access or enter the child code.`);
         }
     });
 

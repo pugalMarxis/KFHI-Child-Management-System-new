@@ -14,6 +14,10 @@ class Child extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $attributes = [
+        'profile_version' => 1,
+    ];
+
     /**
      * Attributes that can be mass assigned.
      *
@@ -48,6 +52,7 @@ class Child extends Model
         return [
             'date_of_birth' => 'date',
             'custom_fields' => 'array',
+            'profile_version' => 'integer',
         ];
     }
 
@@ -82,6 +87,11 @@ class Child extends Model
     public function qrCode(): HasOne
     {
         return $this->hasOne(QRCode::class)->latestOfMany();
+    }
+
+    public function qrCodes(): HasMany
+    {
+        return $this->hasMany(QRCode::class);
     }
 
     /**

@@ -488,15 +488,15 @@
                     <div class="form-group">
 
                         <label>
-                            Child Code <span>*</span>
+                            Permanent Child Code
                         </label>
 
                         <input
                             type="text"
-                            name="child_code"
-                            value="{{ old('child_code', $child->child_code) }}"
-                            required
+                            value="{{ $child->child_code }}"
+                            readonly
                         >
+                        <small>This code stays the same when you update the child’s details.</small>
 
                     </div>
 

@@ -354,7 +354,7 @@
 
     function openDatabase() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(databaseName, 1);
+            const request = indexedDB.open(databaseName, 2);
             request.onupgradeneeded = () => {
                 const database = request.result;
                 if (!database.objectStoreNames.contains('children')) {
