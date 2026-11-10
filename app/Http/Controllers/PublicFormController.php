@@ -126,13 +126,17 @@ class PublicFormController extends Controller
         );
 
         abort_unless(
-            $questionnaire->allow_anonymous,
+            $questionnaire->allow_anonymous
+                || session()->has('verified_enumerator_id')
+                || auth()->check(),
             403,
             'This form requires authenticated survey enumerator access.'
         );
 
         // Build dynamic server-side validation rules
-        $rules = [];
+        $rules = [
+            'child_id' => ['nullable', 'integer', 'exists:children,id'],
+        ];
         $customAttributes = [];
 
         foreach ($questionnaire->questions as $question) {
