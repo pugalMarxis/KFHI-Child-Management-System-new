@@ -136,7 +136,7 @@ class PublicFormController extends Controller
             'This form requires authenticated survey enumerator access.'
         );
 
-        $this->authorizeEnumeratorAssignment($questionnaire);
+        $enumerator = $this->authorizeEnumeratorAssignment($questionnaire);
 
         // Build dynamic server-side validation rules
         $rules = [
@@ -230,27 +230,42 @@ class PublicFormController extends Controller
             }
         }
 
-        // Check child linkage if supplied
-        $childId = $request->input('child_id') ?: null;
+        // Only a verified Enumerator may link a response to an assigned child.
+        $childId = $validated['child_id'] ?? null;
         $childSnapshot = null;
+
         if ($childId) {
-            $child = \App\Models\Child::find($childId);
-            if ($child) {
-                $childSnapshot = [
-                    'child_code' => $child->child_code,
-                    'first_name' => $child->first_name,
-                    'middle_name' => $child->middle_name,
-                    'last_name' => $child->last_name,
-                    'gender' => $child->gender,
-                    'date_of_birth' => $child->date_of_birth?->format('Y-m-d'),
-                    'school_name' => $child->school_name,
-                    'grade' => $child->grade,
-                    'district' => $child->district,
-                    'gn_division' => $child->gn_division,
-                    'address' => $child->address,
-                    'status' => $child->status,
-                ];
-            }
+            abort_unless(
+                $enumerator,
+                403,
+                'Child records can only be linked by a verified Enumerator.'
+            );
+
+            $child = \\App\\Models\\Child::query()
+                ->whereKey($childId)
+                ->where('status', 'active')
+                ->first();
+
+            abort_unless(
+                $child && $enumerator->allowedChildren()->whereKey($child->getKey())->exists(),
+                403,
+                'This child is not assigned to your Enumerator account.'
+            );
+
+            $childSnapshot = [
+                'child_code' => $child->child_code,
+                'first_name' => $child->first_name,
+                'middle_name' => $child->middle_name,
+                'last_name' => $child->last_name,
+                'gender' => $child->gender,
+                'date_of_birth' => $child->date_of_birth?->format('Y-m-d'),
+                'school_name' => $child->school_name,
+                'grade' => $child->grade,
+                'district' => $child->district,
+                'gn_division' => $child->gn_division,
+                'address' => $child->address,
+                'status' => $child->status,
+            ];
         }
 
         // Determine enumerator attribution
@@ -322,17 +337,29 @@ class PublicFormController extends Controller
     /**
      * Enforce Enumerator assignment for questionnaires that require it.
      */
-    private function authorizeEnumeratorAssignment(Questionnaire $questionnaire): void
+    private function authorizeEnumeratorAssignment(Questionnaire $questionnaire): ?Enumerator
     {
         $enumeratorId = session('verified_enumerator_id');
 
+        if ($questionnaire->requires_enumerator) {
+            abort_unless(
+                $enumeratorId,
+                403,
+                'This questionnaire requires a verified Enumerator account.'
+            );
+        }
+
         if (!$enumeratorId) {
-            return;
+            return null;
         }
 
         $enumerator = Enumerator::find($enumeratorId);
 
-        abort_unless($enumerator && $enumerator->isActive(), 403, 'Enumerator access is inactive or expired.');
+        abort_unless(
+            $enumerator && $enumerator->isActive(),
+            403,
+            'Enumerator access is inactive or expired.'
+        );
 
         if ($questionnaire->requires_enumerator) {
             abort_unless(
@@ -341,6 +368,8 @@ class PublicFormController extends Controller
                 'This questionnaire is not assigned to your Enumerator account.'
             );
         }
+
+        return $enumerator;
     }
 
     public function success(string $token): View
