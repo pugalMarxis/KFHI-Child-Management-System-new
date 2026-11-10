@@ -36,6 +36,8 @@ class EnumeratorSurveyController extends Controller
             'This questionnaire is not published.'
         );
 
+        $this->authorizeQuestionnaireAccess($enumerator, $questionnaire);
+
         $questionnaire->load([
             'event',
             'questions.options',
@@ -71,6 +73,8 @@ class EnumeratorSurveyController extends Controller
             403,
             'This questionnaire is not published.'
         );
+
+        $this->authorizeQuestionnaireAccess($enumerator, $questionnaire);
 
         // Build dynamic server-side validation rules
         $rules = [
@@ -170,7 +174,17 @@ class EnumeratorSurveyController extends Controller
         $childSnapshot = null;
 
         if ($childId) {
-            $child = Child::find($childId);
+            $child = Child::query()
+                ->whereKey($childId)
+                ->where('status', 'active')
+                ->first();
+
+            abort_unless(
+                $child && $enumerator->allowedChildren()->whereKey($child->getKey())->exists(),
+                403,
+                'This child is not assigned to your Enumerator account.'
+            );
+
             if ($child) {
                 $childSnapshot = [
                     'child_code' => $child->child_code,
@@ -241,5 +255,22 @@ class EnumeratorSurveyController extends Controller
         return redirect()
             ->route('enumerator.dashboard')
             ->with('success', 'Survey response submitted successfully! The response has been queued for review and will remain pending until approved.');
+    }
+
+    /**
+     * Ensure the verified Enumerator can access this published questionnaire.
+     * Questionnaires that do not require Enumerator assignment remain open to
+     * verified Enumerators, matching the dashboard's existing visibility rule.
+     */
+    private function authorizeQuestionnaireAccess(
+        Enumerator $enumerator,
+        Questionnaire $questionnaire
+    ): void {
+        abort_unless(
+            !$questionnaire->requires_enumerator
+                || $enumerator->questionnaires()->whereKey($questionnaire->getKey())->exists(),
+            403,
+            'This questionnaire is not assigned to your Enumerator account.'
+        );
     }
 }
