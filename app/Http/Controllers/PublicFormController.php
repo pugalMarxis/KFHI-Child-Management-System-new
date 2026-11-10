@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Enumerator;
 use App\Models\Questionnaire;
 use App\Models\QuestionnaireResponse;
 use App\Services\DuplicatePreventionService;
@@ -30,6 +31,8 @@ class PublicFormController extends Controller
             403,
             'This form requires survey enumerator access. Please enter as an enumerator.'
         );
+
+        $this->authorizeEnumeratorAssignment($questionnaire);
 
         $fieldMapping = $questionnaire->child_field_mapping ?? [];
         // $commonPassword = \App\Models\Enumerator::getCommonPassword();
@@ -132,6 +135,8 @@ class PublicFormController extends Controller
             403,
             'This form requires authenticated survey enumerator access.'
         );
+
+        $this->authorizeEnumeratorAssignment($questionnaire);
 
         // Build dynamic server-side validation rules
         $rules = [
@@ -312,6 +317,30 @@ class PublicFormController extends Controller
         return redirect()
             ->route('forms.success', $token)
             ->with('success', 'Your submission has been received successfully.');
+    }
+
+    /**
+     * Enforce Enumerator assignment for questionnaires that require it.
+     */
+    private function authorizeEnumeratorAssignment(Questionnaire $questionnaire): void
+    {
+        $enumeratorId = session('verified_enumerator_id');
+
+        if (!$enumeratorId) {
+            return;
+        }
+
+        $enumerator = Enumerator::find($enumeratorId);
+
+        abort_unless($enumerator && $enumerator->isActive(), 403, 'Enumerator access is inactive or expired.');
+
+        if ($questionnaire->requires_enumerator) {
+            abort_unless(
+                $enumerator->questionnaires()->whereKey($questionnaire->getKey())->exists(),
+                403,
+                'This questionnaire is not assigned to your Enumerator account.'
+            );
+        }
     }
 
     public function success(string $token): View
