@@ -241,7 +241,7 @@ class PublicFormController extends Controller
                 'Child records can only be linked by a verified Enumerator.'
             );
 
-            $child = \\App\\Models\\Child::query()
+            $child = \App\Models\Child::query()
                 ->whereKey($childId)
                 ->where('status', 'active')
                 ->first();

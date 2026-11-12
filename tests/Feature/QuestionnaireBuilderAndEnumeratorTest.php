@@ -662,6 +662,12 @@ class QuestionnaireBuilderAndEnumeratorTest extends TestCase
             ],
         ]);
 
+        $enumerator->questionnaires()->attach($questionnaire->id);
+        $enumerator->allowedChildren()->attach($child->id, [
+            'allowed_by' => $this->admin->id,
+            'include_family_details' => false,
+        ]);
+
         // Submit as verified enumerator with UPDATED values
         $this->actingAs($this->enumeratorUser)
             ->withSession(['verified_enumerator_id' => $enumerator->id])
